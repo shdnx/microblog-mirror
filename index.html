@@ -24,6 +24,29 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2023/11/10/earning-interest-rate.html">Earning interest rate on Interactive Brokers cash balance</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/11/10/earning-interest-rate.html" class="u-url"><time class="dt-published" datetime="2023-11-10 22:13:33 &#43;0200">Nov 10, 2023</time></a>
+
+		<div class="e-content">
+			 <p>For my investments I normally use <a href="https://www.degiro.nl/">Degiro</a> as a broker, because their app and website is quite decently usable, and their fees are low. However, it&rsquo;s come to my attention that Interactive Brokers pays <a href="https://www.interactivebrokers.com/en/accounts/fees/pricing-interest-rates.php">quite good interest</a> on your cash balance with them: up to 4.83% currently. This is much better than a normal savings account! My ING savings account currently pays 1.25% interest (well, 1.5% below 10K EUR, but above that it&rsquo;s 1.25%). So yeah, 4.8% sounds great!</p>
+<p>Opening an account with Interactive Brokers (IKBR) is a bit annoying, but honestly wasn&rsquo;t that bad. The worst part is that they require a proof of address, and for the Netherlands they don&rsquo;t appear to want to accept anything other than a municipality extract, which costs some money and takes like a few weeks to get.</p>
+<p>But, once you&rsquo;re through all that, and you&rsquo;ve transferred the money to your IKBR account, you can start earning that sweet sweet interest, right? Well, yes, but there are caveats and things that are not easy to figure out, because IKBR&rsquo;s website and app is a <em>mess</em>.</p>
+<p>First of all, that 4.8% interest rate applies only on settled USD cash balances. You can also get interest on EUR cash balances, but less: currently up to 3.4%. For me this was fine and I&rsquo;ve converted my whole IKBR balance to USD, so that not all of my wealth is in EUR: basically, to hedge a bit against the currency (FX) rate. Then, note that you will not earn any interest on the first 10K USD, only on the amount over it. Also, you only earn the full interest rate as stated above if your net asset value (NAV) is over 100K USD: below that, you get a proportionally down-adjusted rate. All of this is explained on the <a href="https://www.interactivebrokers.com/en/accounts/fees/pricing-interest-rates.php">IKBR website</a> pretty clearly: so far so good.</p>
+<p>If you actually go ahead and do all of this, and then a month or so later you check your account statement, you will be confronted with a whole bunch of puzzling information that the IKBR client portal does an incredibly poor job of explaining. On the topic of interest, you will find 3 separate things in the statement: accrued interest (positive), interest reversals (negative), and &ldquo;Withholding @ 20% on Credit Interest&rdquo; (negative). At this point if you&rsquo;re anything like me, you&rsquo;ll be confused: what on earth is all this? I just wanted to get some interest!</p>
+<p>You have to dig around quite a bit on the IKBR client portal to get an explanation on what&rsquo;s the deal with accrued interest and reversals, but you can find this:</p>
+<blockquote>
+<p>Interest accruals are converted to your base currency using the daily currency conversion rates. Interest accrues daily during the month and is paid or charged once a month after each month&rsquo;s close. When interest is paid or charged to the account, the daily accruals are reversed.</p>
+</blockquote>
+<p>Essentially: IKBR credits your account daily on the interest your cash has earned (accrued) on that day, and then once per month coalesces all of these into one and reverses the daily additions. This is weird and counter-intuitive, and my best guess for the reason is that they do this is because both your settled cash balance and the effective interest rate may change often. The monthly reversal and credit may be slightly different in case the interest rate has changed since the beginning of the month.</p>
+<p>Finally, what is &ldquo;Withholding @ 20% on Credit Interest&rdquo;? <a href="https://www.reddit.com/r/interactivebrokers/comments/xusa7l/just_received_from_ibkr_20_tax_on_interest/">As it turns out</a>, Ireland imposes a 20% tax on credit interest (i.e. money made from interest payments), and IKBR withholds that automatically. The fun part is that they do this even if you are not a tax resident in Ireland! You have to dig around to get an explanation for all of this, but, to be fair, IKBR <a href="https://www.ibkrguides.com/kb/article-4687.htm">does have an article</a> that explains what this is and what you have to do. You have to complete form 8-3-6 (see the link), then have the tax authorities of the country where you are tax resident <strong>also</strong> complete it, and then submit it to IKBR. Yikes, what a hassle!</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2023/10/26/the-state-of.html">The state of self-driving: Cruise suspended</a></h1>
 		
 
