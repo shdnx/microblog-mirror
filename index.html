@@ -24,6 +24,54 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2023/11/20/simultaneous-multithreading-priority.html">Simultaneous multi-threading: priority signalling</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/11/20/simultaneous-multithreading-priority.html" class="u-url"><time class="dt-published" datetime="2023-11-20 04:26:10 &#43;0200">Nov 20, 2023</time></a>
+
+		<div class="e-content">
+			 <p>I&rsquo;ve encountered a statement today in a <a href="https://devblogs.microsoft.com/oldnewthing/20180809-00/?p=99455">random blog post about the IBM PowerPC 600 series</a> that broke my brain for a minute while I was trying to figure out what it could possibly have meant, so now I&rsquo;m going to subject you to it as well. Here goes:</p>
+<blockquote>
+<p>Moving a register to itself is functionally a nop, but the processor overloads it to signal information about priority.</p>
+</blockquote>
+<p>The blog post does go on to explain this&hellip; well, for certain values of &ldquo;explain&rdquo; anyway:</p>
+<pre><code> or      r1, r1, r1       ; low priority
+ or      r6, r6, r6       ; medium-low priority
+ or      r2, r2, r2       ; normal priority
+</code></pre>
+<blockquote>
+<p>A program can voluntarily set itself to low priority if it is waiting for a spin lock.</p>
+</blockquote>
+<p>Ok, let&rsquo;s back up a step and see if we can make sense of this. The code we&rsquo;re looking it is Assembly (the human-readable form of machine code) for this particular IBM CPU architecture. <code>or</code> executes a bit-wise logical OR, that is, an independent logical OR operation for each bit in a machine word (however many bits that is): <code>ra | rb</code> with the result stored in <code>rd</code> would be written as <code>or      rd, ra, rb</code>. (The <code>r</code> prefixes just denote that we are talking about CPU registers; just think of them as hardware-level variables if you&rsquo;re not sure what that means.)</p>
+<p>Based on this, <code>or      r1, r1, r1</code> would calculate <code>r1 | r1</code> and store the result in <code>r1</code>. It should be easy to see that <code>r1 | r1</code> will always just yield <code>r1</code> unchanged as the result (since <code>1 | 1 = 1</code> and <code>0 | 0 = 0</code>), so this simplifies down to: store <code>r1</code> into <code>r1</code>, i.e. do not do anything at all. Instructions that have no actual effect can be useful in a few cases (such as ensuring memory alignment of code, or as patching points for debuggers), and there are lots of ways of writing code that has no effect: here, for example, we could use any register in place of <code>r1</code> and it would work the same way. (x86-64, the dominant architecture for PCs today, has a dedicated <code>nop</code> instruction for this purpose.)</p>
+<p>Apparently, the PowerPC 600 series architecture uses these different typings of &ldquo;no operation&rdquo; to signal priority: using <code>r1</code> signals low priority, and <code>r2</code> normal priority (I&rsquo;m not sure what to make of &ldquo;medium-low priority&rdquo; denoted by the use of <code>r6</code>). But how is &ldquo;priority&rdquo; even a concept in CPU land? One might think that it has a single stream of instructions to execute, and it just goes executing them one by one. This turns out to not exactly be the case, even putting aside more complicated optimizations such as out-of-order execution: the PowerPC architecture uses simultaneous multi-threading (SMT) between two &ldquo;threads&rdquo; per core (similarly to Intel&rsquo;s hyper-threading technology for x86-64).</p>
+<p>To understand why this is useful, consider that each CPU core contains multiple execution units (e.g. 8 per core for PowerPC5), which essentially means that each core separately is actually able to perform multiple calculations concurrently. These execution units are specialized: for example, you&rsquo;d have different execution units for integer and floating point (decimal) arithmetic: usually called ALU (Arithmetic-Logical Unit) and FPU (Floating-Point Unit). This means that if, for example. the running application (more precisely, the currently scheduled operating system thread) is performing lots of integer arithmetic, then the core&rsquo;s ALUs are be fully utilized while the FPUs are sitting idle. This is a waste, especially if we know that there&rsquo;s another thread that could be utilizing those FPUs.</p>
+<p>Beyond this, there are other situations where allowing two threads to run per CPU core is useful: the most common one would be when one thread is waiting for a result of a memory operation. CPUs are much, much, much faster than accessing memory is, so CPUs spend subjective lifetimes simply waiting for the two numbers to arrive so that it can finally add them together. (This is the entire justification for the multi-level caches.) While one thread is waiting for memory (perhaps due to a cache miss), the other may be able to proceed.</p>
+<p>Of course, the two threads sharing the same CPU core must also share lots of hardware resources on the core (such as the register file or an instruction decoder), so they will never be able to run nearly as concurrently as two threads running on two separate cores can. Therefore, performance of the individual threads suffers, even though the overall amount of work done by the entire system improves. (This is sometimes actually undesirable, such as when running latency-sensitive applications like high-frequency trading algorithms. In these scenarios, you&rsquo;ll want to disable this hardware feature.)</p>
+<p>Now that we understand all of this, we should be able to suspect where the concept of priority comes into play when dealing with two threads running on the same CPU core; <a href="https://course.ece.cmu.edu/~ece740/f13/lib/exe/fetch.php?media=kalla04_power5.pdf">the higher-priority thread gets more of the shared resources</a>:</p>
+<blockquote>
+<p>In SMT mode, the Power5 uses two separate instruction fetch address registers to store the program counters for the two threads.
+&hellip;
+Instruction fetches alternate between the two threads. After fetching, the Power5 places instructions in the predicted path in separate instruction fetch queues for the two threads. [&hellip;] On the basis of thread priorities, the processor selects instructions from one of the instruction fetch queues [&hellip;].
+&hellip;
+The Power5 chip observes the difference in priority levels between the two threads and gives the one with higher priority additional decode cycles.
+If both threads are at the lowest running priority, the microprocessor assumes that neither thread is doing meaningful work and throttles the decode rate to conserve power.</p>
+</blockquote>
+<p>The article even goes into examples for when this could be especially useful:</p>
+<blockquote>
+<ul>
+<li>A thread is in a spin loop waiting for a lock. Software would give the thread lower priority, because it is not doing useful work while spinning.</li>
+<li>A thread has no immediate work to do and is waiting in an idle loop. Again, software would give this thread lower priority.</li>
+<li>One application must run faster than another. For example, software would give higher priority to real-time tasks over concurrently running background tasks.</li>
+</ul>
+</blockquote>
+<p>Implementations of the x86-64 architecture also <a href="https://stackoverflow.com/a/74152773/128240">feature similar simultaneous multi-threading capability</a>: Intel calls this Hyper-threading, while AMD has named it Clustered Multi-Threading. x86 has a dedicated <code>nop</code> instruction for not doing anything, and does not have anything to my knowledge for signalling priority. There is a separate <code>pause</code> instruction specifically for spin-wait loops, which <a href="https://stackoverflow.com/a/26389922/128240">while helps with SMT</a> is actually an <a href="https://stackoverflow.com/a/12904645/128240">important performance optimization even in ST (single-threaded) mode</a> because it shields against the cost incurred by the branch misprediction when the wait stops.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2023/11/10/earning-interest-rate.html">Earning interest rate on Interactive Brokers cash balance</a></h1>
 		
 
