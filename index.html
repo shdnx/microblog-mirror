@@ -24,6 +24,57 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/14/the-frame-pointers.html">The frame pointers strike back</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/14/the-frame-pointers.html" class="u-url"><time class="dt-published" datetime="2023-12-14 02:48:25 &#43;0200">Dec 14, 2023</time></a>
+
+		<div class="e-content">
+			 <p>Interesting: <a href="https://news.ycombinator.com/item?id=38629626">Ubuntu 24.04 LTS will enable frame pointers by default</a>, following Fedora which <a href="https://fedoraproject.org/wiki/Changes/fno-omit-frame-pointer">made the same change in version 38</a>. In short: GCC will by default start emitting frame pointers again as if using <code>-fno-omit-frame-pointer</code>, which helps debugging and profiling tools a bit, at the cost of what they propose is a generally minimal performance impact.</p>
+<p>The linked article is way too long for the information it conveys, but here is the important part:</p>
+<blockquote>
+<p>[&hellip;] beginning with Ubuntu 24.04 LTS, GCC will enable frame pointers by default for 64-bit platforms. All packages in Ubuntu, with very few exceptions, will be rebuilt with frame pointers enabled, making them easier to profile and subsequently optimise.</p>
+<p>&hellip;</p>
+<p>There is a small performance penalty associated with the change, but in cases where the impact is high (such as the Python interpreter), we’ll continue to omit frame pointers until this is addressed. Our analysis suggests that the penalty on 64-bit architectures is between 1-2% in most cases. We will not make this change on 32-bit architectures where the penalty is higher.</p>
+<p>&hellip;</p>
+<p>By enabling frame pointers by default, we’re lowering the barrier to entry for performance profiling and debugging, meaning:</p>
+<ul>
+<li>Simplified Profiling: [&hellip;] profiling without worrying about compiler configurations.</li>
+<li>Lower Overhead: Unwinding with frame pointers is significantly cheaper than using DWARF or DWARF-derived information.</li>
+<li>Debugging Accessibility: [&hellip;] it will allow bcc-tools, bpftrace, perf and other such tooling to work out of the box.</li>
+</ul>
+</blockquote>
+<p>The article does not attempt to explain what frame pointers are or why they are omitted by default, but there are plenty of good sources for this online, for example <a href="https://stackoverflow.com/a/13007258/128240">this answer on Stack Overflow</a>. In short, frame pointers make it easier and faster to figure out at runtime what the current call stack is (without having to consult debug info metadata), at the cost of losing one general-purpose register (<code>rbp</code>). Some more details can be found e.g. here: <a href="https://stackoverflow.com/a/14666730/128240">Trying to understand gcc option <code>-fomit-frame-pointer</code></a>.</p>
+<p>The performance penalty of this seems to be a bit debated: the previous Stack Overflow answer mentions a geometric average of 14% slowdown, whereas the Ubuntu announcement mentions a 1-2% penalty, notably with the exception of Python 3.11, <a href="https://discuss.python.org/t/python-3-11-performance-with-frame-pointers/22507">where it is 9.5%</a>. I recommend reading the linked investigation to the Python performance regression as it is very interesting, but in summary it turns out that there are cases where having one more general-purpose register makes a large difference:</p>
+<blockquote>
+<p>In summary, to put it bluntly, there is just more work to do for CPU saving/restoring state to/from stack. But I don’t think <code>_PyEval_EvalFrameDefault</code> example is typical of how application code is written, nor is it, generally speaking, a good idea to do so much within single gigantic function. So I believe it’s more of an outlier than a typical case.</p>
+</blockquote>
+<p>I personally am not really convinced of the benefits of re-enabling frame pointers, at least on x86-64. Performing a backtrace tends to be rather infrequent outside of development and testing, so paying a performance penalty does not seem worthwhile overall, even if it is just 1%. We as software developers should be more mindful of the small ways in which we keep inflating hardware requirements, which essentially forces people to buy new phones and computers were more often than is healthy or sane.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/14/the-value-of.html">The value of your work</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/14/the-value-of.html" class="u-url"><time class="dt-published" datetime="2023-12-14 01:59:15 &#43;0200">Dec 14, 2023</time></a>
+
+		<div class="e-content">
+			 <p>Work is valued if and only if it is something that management (or whoever evaluates your performance) cares about, which does not necessarily have to be in any way related to how much real value it provides.</p>
+<p>Have you fixed a bug or introduced a feature that helps every software developer in the company? That&rsquo;s nice, good work! But, if management does not include these software developers or cares about their opinion sufficiently, then the sad reality is that as far as they are concerned, you have achieved close to <strong>nothing</strong>. Have you replaced an SQLite database with a sharded PostreSQL system with Memcached for catching query results? That is only a good thing strictly if it addresses a pain point in a way that management cares about. If the only thing that solves is a headache for your devops team, and the devops team doesn&rsquo;t have the ear of management, then you&rsquo;re out of luck again.</p>
+<p>Did you spot an accidentally quadratic algorithm on the hot path of your service that hasn&rsquo;t caused an issue yet only because the server happens to be restarted every week for unrelated reasons, and you&rsquo;ve spent a few weeks reworking the aforementioned algorithm to be linear? Whether you&rsquo;ve delivered real value is a bit subjective: how likely is it that this would have a caused an issue in the future? How big of an issue could this realistically have caused? You have to also take into account the expected lifetime of the software: if there&rsquo;s a good chance that it&rsquo;ll be scrapped or undergo a major rewrite in the near future, then accordingly the value is less. These are good questions to ask to determine &ldquo;real value&rdquo; delivered, but they are the wrong ones for judging if your work will actually be valued. The only correct question for that is: can you make management care that you have done this?</p>
+<p>What management cares about is sometimes a good proxy for real value delivered. Have you optimized code that nobody needs to be any faster? That was not a good use of your time and management should rightfully not be impressed: little actual value was created. Same for adding features that nobody needed or asked for. When proposing to migrate from one technology / framework / platform to another, management will usually ask two questions: why do we need to do this (i.e. how much value will it add), and how long will it take (i.e. what will it cost)? This is a good thing. It is your job as a software developer (especially in a more senior or lead role) to accurately relay this information, and to present a strong case for doing work that you truly, genuinely believe should be done. It is a fact of life that sometimes you will fail because you haven&rsquo;t managed to explain the issue in the right way for them to understand, or, looking at this in the opposite way because they have failed to understand.</p>
+<p>But management consists of people (unless you are reading this from a future in which your boss is ChatGPT). Hopefully intelligent, wise, competent, and driven people with the right incentives&hellip; but people nonetheless. And people have biases and limitations. For example, the unfortunate reality tends to be that fixing problems before they arise is essentially invisible, and therefore valued little or not at all; but letting it set fire to your production environment and then coming in to fix it is going to be very visible, appreciated, and valued (you may even get called a hero!). Of course, I certainly would not recommend taking this philosophy to the extreme: issues frequently popping up will usually lead to unhappy management and therefore bad reviews; but at the same time, preventing all fires at the cost of not delivering new features (or whatever it is that the Powers That Be care about you doing) is also likely going to have the same effect on your perceived performance.</p>
+<p>Of course, a good manager or team lead will usually understand the value that your work provided even if it is indirect. But this is really really hard! It is fighting an uphill battle. Indirect value tends to be difficult to measure or quantify. It may even start being effective later, after some time has passed, and few people will take care to trace the cause back to your work months prior. You&rsquo;ll have to work hard to sell the value you provided, and that in and of itself may get you in trouble, as it can be easy to mistake you for someone who does nothing useful but talks.</p>
+<p>Whenever you create value indirectly, whether it will be recognized is &ndash; to a large extent &ndash; a question of trust, which in turn tends to be a function of how much your manager likes and respects you. Depending on your job and the environment you&rsquo;re in, the ratio of direct to indirect value supplied by you and your work may make it anything between &ldquo;exceptionally helpful&rdquo; to &ldquo;absolutely critical&rdquo; for you to be liked and trusted by management in order for you to be appreciated and to have a long, successful career.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2023/12/09/how-do-allyoucaneat.html">How do all-you-can-eat restaurants stay profitable?</a></h1>
 		
 
