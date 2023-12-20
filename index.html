@@ -24,32 +24,203 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/20/why-chess-bots.html">Why chess bots are virtually unbeatable</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/20/why-chess-bots.html" class="u-url"><time class="dt-published" datetime="2023-12-20 04:39:56 &#43;0200">Dec 20, 2023</time></a>
+
+		<div class="e-content">
+			 <p>A really interesting video with some details about how the Stockfish chess engine works and what makes it so good at chess:</p>
+<style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style>
+<div class='embed-container'><iframe src='https://www.youtube.com/embed/CdFLEfRr3Qk' frameborder='0' allowfullscreen></iframe></div>
+<p>A few things that stood out to me in particular:</p>
+<ul>
+<li>I had no idea that it would use a neutral net to evaluate positions. I expected that this would be way too slow, and prevent it from analyzing the game to sufficient depth (i.e. a sufficient number of moves ahead) to be effective. I was wrong!</li>
+<li>Once there are 7 or fewer pieces remaining in the game, the game is solved, as there are pre-generated tables about the ideal set of moves to make. This takes up about 20 terabytes apparently. Wild!</li>
+<li>On the flip side, it sounds like that Stockfish doesn&rsquo;t special-case openings. I guess it doesn&rsquo;t have to?</li>
+</ul>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/17/good-and-evil.html">Good and evil genies: the AI alignment problem</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/17/good-and-evil.html" class="u-url"><time class="dt-published" datetime="2023-12-17 02:01:09 &#43;0200">Dec 17, 2023</time></a>
+
+		<div class="e-content">
+			 <p>I feel like that as much hype as AI has gotten, rightfully so, the people advocating for caution and restraint, such as the <a href="https://en.wikipedia.org/wiki/Effective_altruism">Effective Altruism</a> movement, have not been very popular. Part of that is just being in the unenviable and intrinsically unpopular position of a naysayer, but I think a large part comes from not understanding very well what exactly they are afraid of, other than vague fears of a Terminator-style Skynet being created.</p>
+<p>At the heart of AI safety issues is the problem of dealing with an entity that is much smarter than we are (like a true, general, wide AI is likely going to be), but has a limited or no understanding or our value and morality system. These thought experiments often think of AI as a genie that can grant wishes&hellip; but while adhering to the letter of your wish, the outcome is likely not going to be what you wanted, unless the genie somehow understands exactly what you value.</p>
+<p>Eliezer Yudkowsky is one of the very smart people working on the AI safety and alignment, and he wrote <a href="https://www.readthesequences.com/The-Hidden-Complexity-Of-Wishes">The Hidden Complexity of Wishes</a> which explains the problem in a clear, concise, and entertaining way.
+The Rational Animations YouTube channel has a beautifully animated version of the same article:
+<style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style>
+<div class='embed-container'><iframe src='https://www.youtube.com/embed/gpBqw2sTD08' frameborder='0' allowfullscreen></iframe></div></p>
+<p>A follow-up video on the same channel continues to explore the topic, and talks about <a href="https://deepmind.google/discover/blog/specification-gaming-the-flip-side-of-ai-ingenuity/">Specification gaming</a> more explicitly in the context of AI:
+<style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style>
+<div class='embed-container'><iframe src='https://www.youtube.com/embed/jQOBaGka7O0' frameborder='0' allowfullscreen></iframe></div></p>
+<p>One thing that is not commonly talked about, and the article and video also do not cover is that the human value- and morality system are actually incomplete and inconsistent, clear from philosophical dilemmas such as the <a href="https://en.wikipedia.org/wiki/Trolley_problem">Trolley Problem</a> and its variations. Even worse, even we humans cannot all agree on critical questions of morality, even basic ones such as whether there should be such a thing as a death sentence, whether women should be allowed to have abortions, or whether immigration is a good or a bad thing. How could we possibly expect a super-intelligent AI to not do harm on a massive scale if we cannot even possibly define what is considered harmful?</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/17/measuring-work-performance.html">Measuring work performance</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/17/measuring-work-performance.html" class="u-url"><time class="dt-published" datetime="2023-12-17 00:39:45 &#43;0200">Dec 17, 2023</time></a>
+
+		<div class="e-content">
+			 <p>In <a href="https://blog.gaborkozar.me/2023/12/14/the-value-of.html">The value of your work</a> I have talked about how in a job, work is useful for your individual career only if your manager deems it so, even though that is not always the same thing as what is valuable for your team or your organization. In fact, it is rather difficult to come up with a good, unqualified definition of what even “valuable” means. Now I want to talk a bit about the same phenomenon but from the opposite perspective: what does this mean for organizations and managers?</p>
+<p>If you are a department head, manager, or team lead, you should be extremely mindful of the bottom line: whatever you incentivize, knowingly or otherwise, is what is generally going to happen, and what you disincentivize, is generally not going to happen. Know also that you will unavoidably be creating incentives and disincentives without even being conscious of doing so.</p>
+<p>The problem lies in how to measure value. It is simply not possible for you to examine everything that each of your reports do in full detail, even though that is the only way with which you could even <em>hope</em> to have a decent measure of their worth and value. (Note that even this would be no guarantee, due to your own inescapable perceptions and biases.) Therefore, you have to rely on proxies: some kind of measurements that &ndash; hopefully &ndash; correlate well with the actual value produced to be useful. You need a <em>metric</em>. Incentives however get created implicitly with each such metric.</p>
+<p>For example, you could try measuring the number of lines of code that each of your software developers produce. More code does more stuff, and more stuff makes more money, yes? Well&hellip; maybe, sometimes, but not all code is created equal<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>. Even putting aside whether the metric is a good one, consider the incentive you have created: to write more lines of code. Your developers will quickly learn that what they should to get raises and promotions is to write more lines of code, and do just barely good enough work otherwise to avoid suspicion. Oh, you will get more lines of code, that is for sure, and it will look <em>amazing</em> if you plot it on a graph and show it at a board meeting&hellip; but it will almost certainly not mean that more features were added or bugs avoided and fixed; likely on the contrary, since now the focus of your reports is maximizing the lines of code whether it makes sense or not, which will definitely be detrimental to real value created (whatever that mystical beast even might be).</p>
+<p>You can play this cat-and-mouse game for a while, but nature and people will always find a way. For example, suppose that you catch on to one of the tricks used to maximize the number of lines:</p>
+<pre tabindex="0"><code>now
+each
+word
+is
+in
+its
+own
+line.
+</code></pre><p>Oh no! Okay, so you change the metric to be for number of characters instead of number of lines, and now your codebase looks like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// defines a new variable called &#34;foo&#34; of type integer (whole signed number) and assigns it an initial value of 0 (zero, nothing)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> foo <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+
+<span style="color:#75715e">// Adds the value of &#34;bar&#34; to that of &#34;foo&#34; numerically, for example if &#34;bar&#34; is 4, then &#34;foo&#34; will now be 4 as well because &#34;foo&#34; was initially 0 (see the previous line).
+</span><span style="color:#75715e">// Note that functionally, we could also just use a simple assignment in this case, or, you know, just initialize &#34;foo&#34; to be &#34;bar&#34; to begin with, but This Is More Maintainable (TM).
+</span><span style="color:#75715e"></span>foo <span style="color:#f92672">+=</span> bar;
+</code></pre></div><p>Oh dear. It&rsquo;s okay though, the solution is simple: just exclude comments from your counting tool. But wait, what&rsquo;s this, why did the above code turn into:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#if CHARACTERS_ARE_BEING_COUNTED
+</span><span style="color:#75715e"></span>This is not a comment<span style="color:#f92672">!</span>
+Defines a <span style="color:#66d9ef">new</span> variable called <span style="color:#e6db74">&#34;foo&#34;</span> of type integer (whole <span style="color:#66d9ef">signed</span> number) and assigns it an initial value of <span style="color:#ae81ff">0</span> (zero, nothing).
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> foo <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+
+<span style="color:#75715e">#if CHARACTERS_ARE_BEING_COUNTED
+</span><span style="color:#75715e"></span>Adds the value of <span style="color:#e6db74">&#34;bar&#34;</span> to that of <span style="color:#e6db74">&#34;foo&#34;</span> numerically, <span style="color:#66d9ef">for</span> example <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#34;bar&#34;</span> is <span style="color:#ae81ff">4</span>, then <span style="color:#e6db74">&#34;foo&#34;</span> will now be <span style="color:#ae81ff">4</span> as well because <span style="color:#e6db74">&#34;foo&#34;</span> was initially <span style="color:#ae81ff">0</span> (see the previous line).
+Note that functionally, we could also just use a simple assignment in <span style="color:#66d9ef">this</span> <span style="color:#66d9ef">case</span>, or, you know, just initialize <span style="color:#e6db74">&#34;foo&#34;</span> to be <span style="color:#e6db74">&#34;bar&#34;</span> to begin with, but This Is More Maintainable (TM).
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>foo <span style="color:#f92672">+=</span> bar;
+</code></pre></div><p><code>CHARACTERS_ARE_BEING_COUNTED</code> is never defined anywhere, therefore all that text is essentially a comment anyway, but now you need a C++ preprocessor to defeat this particular gaming of your metric. Man! It&rsquo;s annoying, but you get through this.</p>
+<p>Now Bob is complaining that he is working on complex multi-threaded computational code that is easily twice as hard to build as Joe&rsquo;s code. That is a fair point indeed, so you change your metric to count double any code that is multi-threaded. You see where this is going, right? You guessed it: now <em>all of the code</em> is multi-threaded, for absolutely no reason, and your production servers caught fire because Joe&rsquo;s button coloring code now uses 16 threads.</p>
+<p>I could go on (and I can&rsquo;t say I&rsquo;m not tempted, this is fun) but I consider the point made: what gets produced is dictated by what metric you use, or, simply put: you will get what you measure, at the exclusion of all else. This is known as <a href="https://en.wikipedia.org/wiki/Goodhart%27s_law">Goodhart&rsquo;s law</a>: when a measure becomes a target, it ceases to be a good measure.</p>
+<p>Of course, you, dear reader, know better than this and would never introduce such a silly metric as a measure of productivity. Okay, but what <em>do</em> you use then? You could try measuring number of tickets resolved: but wait, what used to be 63 tickets is now over 18 000 and growing because some guy figured out how to automate creating and resolving tickets.</p>
+<p>It is possible to create decent metrics for some jobs, but the more involved the job is, the exponentially more difficult it gets, and when it comes to software development, it becomes nigh impossible. This results in invisible, interpersonal metrics: who stands out to you or the other managers as someone who solves problems and pushes out feature after feature like a machine. Realize though that with this you have created a different incentive.</p>
+<p>Consider two of your reports: Joe and Bob. Joe is super social, everybody likes him, and he always seems to find an opportunity to mention the latest feature he added or bug he has fixed. It is really impressive stuff! Just yesterday he spent the entire afternoon adding a new button to a form, which was apparently really difficult because of something to do with layouts and flexbox and margins and viewports and mobile devices. You are really glad to have somebody like Joe on your team who can fix complicated problems like that! Then there is Bob, nobody is super sure what he does, as he mostly keeps to himself. Yesterday he muttered something about optimizing the calculation engine so that each calculation now takes 20 milliseconds instead of 3 seconds, but you are not super sure what a millisecond is or why this is useful, and Bob did not seem too inclined to explain. 20 seems to be a bigger number than 3, so that seems worse, but it is hard to tell.</p>
+<p>The incentive you have now is for developers to make their work well-known and <em>visible</em>. They will actively avoid tasks which are less visible, and therefore get less credit. You are now selecting for developers with good social and communication skills first, and programming skill only second, at best. Highly complex, technical issues, such as networking code that is responsible for keeping your system functioning reliably even under heavy load is now avoided, as it is immensely difficult to work with and then challenging to explain to a non-technical manager, unless you can show a graph for the number of incidents dropping dramatically since you have rolled out your new version or something.</p>
+<p>In real life, most companies end up using some combination of concrete metrics (such as tickets closed) and personal impressions gathered during daily or weekly meetings, one-on-one meetings, and casual chats by the coffee machine. Because concrete metrics are easy to game as we have seen, the latter tends to have a higher weight, hence, good salespeople tend to be rewarded more than good professionals.</p>
+<p>There is value generated not just by implementing new features, but also fixing bugs and issues. I have mentioned the <a href="https://en.wikipedia.org/wiki/Preparedness_paradox">Preparedness Paradox</a> in the previous article, and this is as standard as it gets. Fixing disasters <em>before</em> they occur is not a good strategy, because it is difficult to get credit for: there is no emotional weight attached to an event that did not happen, even if it would have been Very Bad. However, coming in at 4 AM on a Saturday to fix a critical production issue whereby all servers caught fire and working on it all day so that by Sunday the system can work again tends to get valued immensely, and the person gets hailed a hero. The same extends to fixing regular run-of-the-mill bugs in the code: a bug that never made it into production is less visible than a bug that did, and was then gloriously defeated in single combat, documented by a ticket and all.</p>
+<p>Every leader and manager is human, and is subject to all the usual human biases, which then affect all of the people working around them, and can even define the experience of their reports. Every measure of performance and productivity is bad, some are just less bad than others. There is no silver bullet: you can only try to actively and consciously seek as much data as possible from as many sources as possible before rendering judgement, and you can be careful and thoughtful in assigning performance targets and metrics. But at the end of the day, you have to live with the fact that your judgement will always be unfair, and there will be people you prize that have done little to earn it, and there will be others who you have fired despite them quietly being the most valuable member of your team. Such is the role of a manager.</p>
+<p><strong>P.S.:</strong> I find it interesting how all of this is very similar to <a href="https://deepmind.google/discover/blog/specification-gaming-the-flip-side-of-ai-ingenuity/">Specification gaming</a>, which is a major problem of AI safety and alignment research. See also: <a href="https://blog.gaborkozar.me/2023/12/17/good-and-evil.html">Good and evil genies: the AI alignment problem</a></p>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>Consider that some of the most complex algorithms in existence span only a few hundred lines of code, if even that, and can take weeks or months to create; however, completely routine boilerplate code, such as what makes up most websites (e.g. routine <a href="https://developer.mozilla.org/en-US/docs/Glossary/CRUD">CRUD websites</a>) and tests take pretty much only as long to create as it takes to type them.</p>
+<p>Some coding styles also naturally lend themselves to more lines of code; for instance, when writing <code>if (condition) { do-stuff }</code> some styles prefer to put the <code>{</code> on its own line, while others prefer to keep it at the end of line with <code>if (condition)</code>.</p>
+<p>It&rsquo;s even worse if you try to compare code length in different languages: C++ is extremely verbose compared to Python, for example, and the exact same functionality (if not performance) may take 2-3 times as much code to achieve in C++ as in Python. This is one of the reasons why C++ is less popular than Python.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/15/as-usual-xkcd.html" class="u-url"><time class="dt-published" datetime="2023-12-15 16:36:01 &#43;0200">Dec 15, 2023</time></a>
+
+		<div class="e-content">
+			 <p>As usual, XKCD is dead right and manages to entertain at the same time: <a href="https://xkcd.com/2867/">DateTime</a>.</p>
+<p>I have had the misfortune of trying to implement sane date and time primitives at my last job, as well as dealing with measuring elapsed time with less overhead than <code>clock_gettime()</code>, and it is a nightmare. For a computer, date and time are completely meaningless, bonkers concepts. And god save me from timezones and daylight savings time. You may enjoy this: <a href="https://www.kiwi.com/stories/5-of-the-weirdest-time-zone-facts/">5 of the weirdest time zone facts</a></p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/15/genetically-modified-bacteria.html">Genetically modified bacteria to end tooth decay?</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/15/genetically-modified-bacteria.html" class="u-url"><time class="dt-published" datetime="2023-12-15 02:13:18 &#43;0200">Dec 15, 2023</time></a>
+
+		<div class="e-content">
+			 <p>This will be huge, if true: <a href="https://www.astralcodexten.com/p/defying-cavity-lantern-bioworks-faq">A genetically modified bacterium that outcompetes bacteria causing tooth decay</a> (<a href="https://news.ycombinator.com/item?id=38562939">Hacker News discussion</a>):</p>
+<blockquote>
+<p>Lantern Bioworks says they have a cure for tooth decay. Their product is a genetically modified bacterium which infects your mouth, outcompetes all the tooth-decay-causing bacteria, and doesn&rsquo;t cause tooth decay itself. If it works, it could make cavities a thing of the past&hellip;</p>
+</blockquote>
+<p>The prices:</p>
+<blockquote>
+<p>5: What&rsquo;s the plan to sell Lumina?</p>
+<ul>
+<li>Phase 1: (January 2024) Sell to biohackers in Prospera for $20,000.</li>
+<li>Phase 2: (2025??) Sell to ordinary people in the US for a few hundred dollars.</li>
+</ul>
+</blockquote>
+<p>It&rsquo;s worth noting that the FDA has thwarted this product in this past:</p>
+<blockquote>
+<p>The FDA demanded a study of 100 subjects, all of whom had to be &ldquo;age 18-30, with removable dentures, living alone and far from school zones&rdquo;. Hillman wasn&rsquo;t sure there even were 100 young people with dentures, but the FDA wouldn&rsquo;t budge from requiring this impossible trial. Hillman gave up and switched to other projects [&hellip;]</p>
+</blockquote>
+<p>So yeah, 2025 seems very optimistic to me, but I&rsquo;d be very happy to be proven wrong. There&rsquo;s further cause to take this with a huge grain (hell, maybe a silo of) salt, in that there appear to be some knowledgeable commenters in the HN discussion who are calling bullshit on this, <a href="https://news.ycombinator.com/item?id=38565695">for example</a>:</p>
+<blockquote>
+<p>This story has been around for far too long and evidence is unbelievably weak, and the claims border on fraudulent.</p>
+<ol>
+<li>
+<p>The claim that this strain outcompetes the same S mutans from occupying the same niche cannot be true unless this strain is also capable of creating and tolerating environments with low pH. By definition if it creates acid to the same degree it will also cause cavities.</p>
+</li>
+<li>
+<p>Single applications are insufficient to cause any persistent colonization. Even multiple daily applications of oral probiotics don&rsquo;t lead to colonization. [&hellip;]</p>
+</li>
+<li>
+<p>S mutans is not the only species that causes cavities. [&hellip;]</p>
+</li>
+</ol>
+</blockquote>
+<p>But still, exciting! I&rsquo;m also looking forward to seeing more results of genetic engineering, as I believe that has at minimum as much potential to change the world as AI.</p>
+<p>As an aside, this is the first time I&rsquo;m hearing about Prospera:</p>
+<blockquote>
+<p>Prospera [is] a libertarian charter city in Honduras. Prospera allows the sale of any biotech product under an informed consent rule: as long as the company is open about risks and the patient signs a waiver saying they were informed, people can do what they want.</p>
+</blockquote>
+<p>Appears to be quite problematic in general: <a href="https://www.vice.com/en/article/k7a7ae/foreign-investors-are-building-a-hong-kong-of-the-caribbean-on-a-remote-honduran-island">Foreign Investors Are Building a &lsquo;Hong Kong of the Caribbean&rsquo; on a Remote Honduran Island</a>, though I guess you&rsquo;d already expect little good from a place categorized as a &ldquo;libertarian charter city&rdquo;&hellip;</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2023/12/14/the-frame-pointers.html">The frame pointers strike back</a></h1>
 		
 
 		<a href="https://blog.gaborkozar.me/2023/12/14/the-frame-pointers.html" class="u-url"><time class="dt-published" datetime="2023-12-14 02:48:25 &#43;0200">Dec 14, 2023</time></a>
 
 		<div class="e-content">
-			 <p>Interesting: <a href="https://news.ycombinator.com/item?id=38629626">Ubuntu 24.04 LTS will enable frame pointers by default</a>, following Fedora which <a href="https://fedoraproject.org/wiki/Changes/fno-omit-frame-pointer">made the same change in version 38</a>. In short: GCC will by default start emitting frame pointers again as if using <code>-fno-omit-frame-pointer</code>, which helps debugging and profiling tools a bit, at the cost of what they propose is a generally minimal performance impact.</p>
-<p>The linked article is way too long for the information it conveys, but here is the important part:</p>
+			 <p>Interesting: <a href="https://news.ycombinator.com/item?id=38629626">Ubuntu 24.04 LTS will enable frame pointers by default</a>, following Fedora which <a href="https://fedoraproject.org/wiki/Changes/fno-omit-frame-pointer">made the same change in version 38</a>. In short: GCC will by default start emitting frame pointers again as if using <code>-fno-omit-frame-pointer</code>, which helps debugging and profiling tools a bit, at the cost of what they suggest is a generally minimal performance impact.</p>
+<p><a href="https://community.ibm.com/community/user/wasdevops/blogs/kevin-grigorenko1/2023/02/21/lessons-from-the-field-26-frame-pointers-and-why-t">Frame pointers and why they matter for performance tuning</a> summarizes the history of frame pointers very well, and reveals that this change both in Fedora and Ubuntu actually started by <a href="https://fedoraproject.org/wiki/Changes/fno-omit-frame-pointer#Potential_performance_impact">large tech companies like Google, Meta, and Netflix</a> re-building the Linux distributions they run on their servers with ones where frame pointers are enabled.</p>
+<p>The Ubuntu announcement is way too long for the information it conveys, but here is the important part:</p>
 <blockquote>
 <p>[&hellip;] beginning with Ubuntu 24.04 LTS, GCC will enable frame pointers by default for 64-bit platforms. All packages in Ubuntu, with very few exceptions, will be rebuilt with frame pointers enabled, making them easier to profile and subsequently optimise.</p>
 <p>&hellip;</p>
-<p>There is a small performance penalty associated with the change, but in cases where the impact is high (such as the Python interpreter), we’ll continue to omit frame pointers until this is addressed. Our analysis suggests that the penalty on 64-bit architectures is between 1-2% in most cases. We will not make this change on 32-bit architectures where the penalty is higher.</p>
+<p>There is a small performance penalty associated with the change, but in cases where the impact is high (such as the Python interpreter), we&rsquo;ll continue to omit frame pointers until this is addressed. Our analysis suggests that the penalty on 64-bit architectures is between 1-2% in most cases. We will not make this change on 32-bit architectures where the penalty is higher.</p>
 <p>&hellip;</p>
-<p>By enabling frame pointers by default, we’re lowering the barrier to entry for performance profiling and debugging, meaning:</p>
+<p>By enabling frame pointers by default, we&rsquo;re lowering the barrier to entry for performance profiling and debugging, meaning:</p>
 <ul>
 <li>Simplified Profiling: [&hellip;] profiling without worrying about compiler configurations.</li>
 <li>Lower Overhead: Unwinding with frame pointers is significantly cheaper than using DWARF or DWARF-derived information.</li>
 <li>Debugging Accessibility: [&hellip;] it will allow bcc-tools, bpftrace, perf and other such tooling to work out of the box.</li>
 </ul>
 </blockquote>
-<p>The article does not attempt to explain what frame pointers are or why they are omitted by default, but there are plenty of good sources for this online, for example <a href="https://stackoverflow.com/a/13007258/128240">this answer on Stack Overflow</a>. In short, frame pointers make it easier and faster to figure out at runtime what the current call stack is (without having to consult debug info metadata), at the cost of losing one general-purpose register (<code>rbp</code>). Some more details can be found e.g. here: <a href="https://stackoverflow.com/a/14666730/128240">Trying to understand gcc option <code>-fomit-frame-pointer</code></a>.</p>
+<p>The announcement does not attempt to explain what frame pointers are or why they are omitted by default, but there are plenty of good sources for this online, for example <a href="https://stackoverflow.com/a/13007258/128240">this answer on Stack Overflow</a>. In short, frame pointers make it easier and faster to figure out at runtime what the current call stack is (without having to consult debug info metadata), at the cost of losing one general-purpose register (<code>rbp</code>). Some more details can be found e.g. here: <a href="https://stackoverflow.com/a/14666730/128240">Trying to understand gcc option <code>-fomit-frame-pointer</code></a>.</p>
 <p>The performance penalty of this seems to be a bit debated: the previous Stack Overflow answer mentions a geometric average of 14% slowdown, whereas the Ubuntu announcement mentions a 1-2% penalty, notably with the exception of Python 3.11, <a href="https://discuss.python.org/t/python-3-11-performance-with-frame-pointers/22507">where it is 9.5%</a>. I recommend reading the linked investigation to the Python performance regression as it is very interesting, but in summary it turns out that there are cases where having one more general-purpose register makes a large difference:</p>
 <blockquote>
-<p>In summary, to put it bluntly, there is just more work to do for CPU saving/restoring state to/from stack. But I don’t think <code>_PyEval_EvalFrameDefault</code> example is typical of how application code is written, nor is it, generally speaking, a good idea to do so much within single gigantic function. So I believe it’s more of an outlier than a typical case.</p>
+<p>In summary, to put it bluntly, there is just more work to do for CPU saving/restoring state to/from stack. But I don&rsquo;t think <code>_PyEval_EvalFrameDefault</code> example is typical of how application code is written, nor is it, generally speaking, a good idea to do so much within single gigantic function. So I believe it&rsquo;s more of an outlier than a typical case.</p>
 </blockquote>
-<p>I personally am not really convinced of the benefits of re-enabling frame pointers, at least on x86-64. Performing a backtrace tends to be rather infrequent outside of development and testing, so paying a performance penalty does not seem worthwhile overall, even if it is just 1%. We as software developers should be more mindful of the small ways in which we keep inflating hardware requirements, which essentially forces people to buy new phones and computers were more often than is healthy or sane.</p>
+<p>Digging a bit further into the benefits of having frame pointers, as <a href="https://news.ycombinator.com/item?id=38634302">it is pointed out by a HN commenter</a> <code>perf</code> currently relies on frame pointers to do its job without absolutely murdering the performance of the application being profiled, though there are long-term plans to alleviate the need of this with <a href="https://lwn.net/Articles/940686/">SFrame: fast, low-overhead stack traces</a>.</p>
+<p>I personally am not really convinced of the benefits of re-enabling frame pointers &ndash; at least on x86-64 &ndash; but I do understand that different companies have different priorities and requirements. Still, it looks to me that performing a backtrace should be rather infrequent outside of development and testing, so paying a performance penalty does not seem worthwhile overall, even if it is just 1%. We as software developers should be more mindful of the small ways in which we keep inflating hardware requirements, which essentially forces people to buy new phones and computers were more often than is healthy or sane.</p>
 
 		</div>
 	  </div>
@@ -62,13 +233,15 @@
 		<a href="https://blog.gaborkozar.me/2023/12/14/the-value-of.html" class="u-url"><time class="dt-published" datetime="2023-12-14 01:59:15 &#43;0200">Dec 14, 2023</time></a>
 
 		<div class="e-content">
-			 <p>Work is valued if and only if it is something that management (or whoever evaluates your performance) cares about, which does not necessarily have to be in any way related to how much real value it provides.</p>
+			 <p><a href="https://blog.gaborkozar.me/2023/12/14/the-value-of.html">2023-12-14</a></p>
+<p>Work is valued if and only if it is something that management (or whoever evaluates your performance) cares about, which does not necessarily have to be in any way related to how much real value it provides.</p>
 <p>Have you fixed a bug or introduced a feature that helps every software developer in the company? That&rsquo;s nice, good work! But, if management does not include these software developers or cares about their opinion sufficiently, then the sad reality is that as far as they are concerned, you have achieved close to <strong>nothing</strong>. Have you replaced an SQLite database with a sharded PostreSQL system with Memcached for catching query results? That is only a good thing strictly if it addresses a pain point in a way that management cares about. If the only thing that solves is a headache for your devops team, and the devops team doesn&rsquo;t have the ear of management, then you&rsquo;re out of luck again.</p>
 <p>Did you spot an accidentally quadratic algorithm on the hot path of your service that hasn&rsquo;t caused an issue yet only because the server happens to be restarted every week for unrelated reasons, and you&rsquo;ve spent a few weeks reworking the aforementioned algorithm to be linear? Whether you&rsquo;ve delivered real value is a bit subjective: how likely is it that this would have a caused an issue in the future? How big of an issue could this realistically have caused? You have to also take into account the expected lifetime of the software: if there&rsquo;s a good chance that it&rsquo;ll be scrapped or undergo a major rewrite in the near future, then accordingly the value is less. These are good questions to ask to determine &ldquo;real value&rdquo; delivered, but they are the wrong ones for judging if your work will actually be valued. The only correct question for that is: can you make management care that you have done this?</p>
 <p>What management cares about is sometimes a good proxy for real value delivered. Have you optimized code that nobody needs to be any faster? That was not a good use of your time and management should rightfully not be impressed: little actual value was created. Same for adding features that nobody needed or asked for. When proposing to migrate from one technology / framework / platform to another, management will usually ask two questions: why do we need to do this (i.e. how much value will it add), and how long will it take (i.e. what will it cost)? This is a good thing. It is your job as a software developer (especially in a more senior or lead role) to accurately relay this information, and to present a strong case for doing work that you truly, genuinely believe should be done. It is a fact of life that sometimes you will fail because you haven&rsquo;t managed to explain the issue in the right way for them to understand, or, looking at this in the opposite way because they have failed to understand.</p>
-<p>But management consists of people (unless you are reading this from a future in which your boss is ChatGPT). Hopefully intelligent, wise, competent, and driven people with the right incentives&hellip; but people nonetheless. And people have biases and limitations. For example, the unfortunate reality tends to be that fixing problems before they arise is essentially invisible, and therefore valued little or not at all; but letting it set fire to your production environment and then coming in to fix it is going to be very visible, appreciated, and valued (you may even get called a hero!). Of course, I certainly would not recommend taking this philosophy to the extreme: issues frequently popping up will usually lead to unhappy management and therefore bad reviews; but at the same time, preventing all fires at the cost of not delivering new features (or whatever it is that the Powers That Be care about you doing) is also likely going to have the same effect on your perceived performance.</p>
+<p>But management consists of people (unless you are reading this from a future in which your boss is ChatGPT). Hopefully intelligent, wise, competent, and driven people with the right incentives&hellip; but people nonetheless. And people have biases and limitations. For example, the unfortunate reality tends to be that fixing problems before they arise is essentially invisible (known as the <a href="https://en.wikipedia.org/wiki/Preparedness_paradox">Preparedness Paradox</a>), and therefore valued little or not at all; but letting it set fire to your production environment and then coming in to fix it is going to be very visible, appreciated, and valued (you may even get called a hero!). Of course, I certainly would not recommend taking this philosophy to the extreme: issues frequently popping up will usually lead to unhappy management and therefore bad reviews; but at the same time, preventing all fires at the cost of not delivering new features (or whatever it is that the Powers That Be care about you doing) is also likely going to have the same effect on your perceived performance.</p>
 <p>Of course, a good manager or team lead will usually understand the value that your work provided even if it is indirect. But this is really really hard! It is fighting an uphill battle. Indirect value tends to be difficult to measure or quantify. It may even start being effective later, after some time has passed, and few people will take care to trace the cause back to your work months prior. You&rsquo;ll have to work hard to sell the value you provided, and that in and of itself may get you in trouble, as it can be easy to mistake you for someone who does nothing useful but talks.</p>
 <p>Whenever you create value indirectly, whether it will be recognized is &ndash; to a large extent &ndash; a question of trust, which in turn tends to be a function of how much your manager likes and respects you. Depending on your job and the environment you&rsquo;re in, the ratio of direct to indirect value supplied by you and your work may make it anything between &ldquo;exceptionally helpful&rdquo; to &ldquo;absolutely critical&rdquo; for you to be liked and trusted by management in order for you to be appreciated and to have a long, successful career.</p>
+<p><strong>Edit 2023-12-16</strong>: added mention and link to the Preparedness Paradox at the suggestion of a colleague &ndash; thank you!</p>
 
 		</div>
 	  </div>
