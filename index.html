@@ -24,6 +24,114 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/01/11/passing-a-struct.html">Passing a struct of 3 or more words is slow on AMD64</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/01/11/passing-a-struct.html" class="u-url"><time class="dt-published" datetime="2024-01-11 00:39:44 &#43;0200">Jan 11, 2024</time></a>
+
+		<div class="e-content">
+			 <p>I did not realize that the AMD64 ABI specifies a silly calling convention rule that forces structs with 3 or more word-sized (i.e. 8-byte) fields to be passed by pointer, even if you write your code expecting to have it be passed by value. I learned this from: <a href="https://gist.github.com/FeepingCreature/5dff669aad380a123b15659e195fb96c">Speed up your code: don&rsquo;t pass structs bigger than 16 bytes on AMD64</a> (<a href="https://news.ycombinator.com/item?id=38875422">HN discussion</a>).</p>
+<p>For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Vector</span> { <span style="color:#66d9ef">double</span> x; <span style="color:#66d9ef">double</span> y; <span style="color:#66d9ef">double</span> z; };
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">f</span>(Vector v);
+...
+f(Vector{ .x <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, .y <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, .z <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span> });
+</code></pre></div><p>One would hope that this gets optimized into something like:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">f</span>(<span style="color:#66d9ef">double</span> x, <span style="color:#66d9ef">double</span> y, <span style="color:#66d9ef">double</span> x);
+...
+f(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>);
+</code></pre></div><p>And indeed, this does happen, but only if your struct only contains 2 <code>double</code>s and not 3 (or more). It also happens if the compiler is able to inline the function call, e.g. with the help of link-time optimization. The rest of the time though, it gets compiled more as:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">f</span>(Vector<span style="color:#f92672">*</span>);
+...
+<span style="color:#66d9ef">auto</span> v <span style="color:#f92672">=</span> Vector{ .x <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, .y <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, .z <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span> };
+f(<span style="color:#f92672">&amp;</span>v);
+</code></pre></div><p>Only tangentially related, but one of the comments on GitHub points out that GCC and Clang have support for efficient vector structs: <a href="https://clang.llvm.org/docs/LanguageExtensions.html#vectors-and-extended-vectors">Clang docs</a>, <a href="https://gcc.gnu.org/onlinedocs/gcc/Vector-Extensions.html">GCC docs</a>. <a href="https://godbolt.org/z/o95hr9rP9">Godbolt</a> shows that compilers generate vastly better code with this than naive struct passing due to more aggressive SIMD optimizations, which also happens to bypass the above issue. <a href="https://stackoverflow.com/questions/38750994/what-is-ext-vector-type-and-simd">StackOverflow</a> has some additional explanation on what these attributes do.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/21/words-and-labels.html">Words and labels, on the powers of</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/21/words-and-labels.html" class="u-url"><time class="dt-published" datetime="2023-12-21 05:59:35 &#43;0200">Dec 21, 2023</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://www.raptitude.com/2023/12/nobody-has-seasonal-affective-disorder/">Nobody has seasonal affective disorder</a> describes that Seasonal Affective Disorder (SAD) is one of those medical-ish conditions that cannot be tested for, has no specific or clear symptoms, nor treatment. It could be generously called an <em>umbrella term</em>:</p>
+<blockquote>
+<p>The more I read about it, the more I get the sense that SAD isn’t really a thing, it’s just a label to describe the tendency for some people to get depressed and anxious in winter, regardless of the (perhaps untraceable) particular factors behind it. Seemingly, SAD is just what you call it when nothing particularly explains your winter funk.</p>
+</blockquote>
+<p>With this in mind, calling it a &ldquo;disorder&rdquo; sounds disingenuous, misleading, perhaps even toxic, but I digress. Taking a phenomenon as unclear as this one and assigning it a name is controversial, in that it comes with advantages and disadvantages both:</p>
+<blockquote>
+<p>If you have a name for a group of symptoms, some of the interventions that helped one person with those symptoms might be likely to help someone else.</p>
+<p>The downside to naming this disorder, or naming anything really, is that it gives you a narrowed view of what it is and what should be done about it.</p>
+</blockquote>
+<p>The way I would put this is that the human brains is constantly looking for ways to simplify its job in order to be able to conserve energy. Cognitive biases, fallacies, and stereotypes are well-understood results of this behaviour, and something that no human can ever detach or escape from. These all work by simplifying the world by applying simple heuristics. A few common examples:</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Negativity_bias">negativity bias</a>: bad things seem more likely and feel worse than good things seem likely and feel good,</li>
+<li><a href="https://en.wikipedia.org/wiki/Association_fallacy">association fallacy</a>: inferring guilt or honor from association,</li>
+<li>taking high probability as a certainty<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>, see also <a href="https://www.astralcodexten.com/p/heuristics-that-almost-always-work">Heuristics that almost always work</a>,</li>
+<li>the stereotype of a nerd: computer programmers are smart but have no social skills.</li>
+</ul>
+<p>Some heuristics are better than others, and some are actually <a href="https://www.astralcodexten.com/p/heuristics-that-almost-always-work">almost always correct</a>, but what they all share is that they make the world a simpler place for the brain to deal with. If one glance at a person is enough to determine that he is heavily muscular, our heuristics can tell us that he is likely to be a dumb brute and bamm, judgement was rendered, case closed, we don&rsquo;t need to spend valuable brainpower on actually thinking about anything.</p>
+<p>Concepts and names follows the same pattern, but less extremely so. Our brains love labels because they promise clarity and simplicity: they are clutches to use in a world that is simply too big and too complex for us to ever be able to truly comprehend. Raptitude explains this rather well:</p>
+<blockquote>
+<p>Concepts should be held loosely, because they’re nowhere near as complex as the reality they’re supposedly explaining. Not by many orders of magnitude. They have no truth value in themselves, they just point you to some possibilities, while simultaneously pointing you away from other possibilities.</p>
+<p>&hellip;</p>
+<p>Concepts can be useful, but they mainly restrict our view of what’s happening. When you tag something as X in the mind, you stop considering things that don’t apply to X. I guess this is what Don Miguel Ruiz means when he says words are magic spells.</p>
+<p>&hellip;</p>
+<p>After all, nothing really has a name. Names are crude, low-resolution add-ons that only exist on the level of human thought. Reality doesn’t care what you call it; it will remain its complex and ineffable self.</p>
+</blockquote>
+<p>Students of humanities tend to hold opinions such as &ldquo;there is no such thing as real, humans make their own reality with words&rdquo; and &ldquo;words and language define the world&rdquo;, and this used to annoy and even frustrate me, as I tend to put the physical reality first. Over the years however, I&rsquo;ve come to see the wisdom in this (mostly thanks to the sweetest girl I&rsquo;ve ever met), and have grown to recognize the importance of that perspective as well.</p>
+<p>The sad truth is that we exist in a universe that is too vast and complex for us to ever truly understand. That our brains manage to make any sense of it at all while taking up less space than a football and <a href="https://www.quora.com/Why-do-computers-consume-more-energy-than-the-human-brain">using far less energy than a computer</a> is frankly kind of insane.</p>
+<p>There <em>does</em> exist a physical reality that has true, immutable laws&hellip; but it&rsquo;s a reality we can only ever interact with or think about through the highly imperfect lenses of our own bodies and minds. And so, via humans, mere words gain power almost rivaling that of the very laws of physics.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>This fallacy must have a name but I&rsquo;m not sure what it is. Wikipedia has <a href="https://en.wikipedia.org/wiki/Appeal_to_probability">Appeal to probability</a> but that does not seem right.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2023/12/20/c-hack-explicitly.html">C&#43;&#43; hack: explicitly hiding names</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2023/12/20/c-hack-explicitly.html" class="u-url"><time class="dt-published" datetime="2023-12-20 04:55:04 &#43;0200">Dec 20, 2023</time></a>
+
+		<div class="e-content">
+			 <p>Sometimes you&rsquo;ll encounter situations where a variable is still in scope, but cannot legally be accessed anymore. A typical example is if the variable has been moved from and we want to make sure we don&rsquo;t accidentally reference it again, but there are other examples as well, for example during asynchronous execution.</p>
+<p>This is a clever way to explicitly hide names: <a href="https://devblogs.microsoft.com/oldnewthing/20211104-00/?p=105872">How can I prevent myself from accessing a lambda captured variable or a parameter after I’m done with it?</a></p>
+<p>Example taken from the post, with extra comments added to explain the <a href="https://devblogs.microsoft.com/oldnewthing/20190328-00/?p=102368">WinRT <code>resume_background()</code> function</a> and consequences of its use:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">using</span> hide_name <span style="color:#f92672">=</span> <span style="color:#66d9ef">void</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">hidden_name</span>);
+
+<span style="color:#75715e">// This used to refresh synchronously, but now we refresh
+</span><span style="color:#75715e">// asynchronously. The parameter is still passed by reference
+</span><span style="color:#75715e">// for compatibility.
+</span><span style="color:#75715e"></span>winrt<span style="color:#f92672">::</span>fire_and_forget Refresh(winrt<span style="color:#f92672">::</span>com_ptr<span style="color:#f92672">&lt;</span>Widget<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">const</span><span style="color:#f92672">&amp;</span> widget) {
+    <span style="color:#75715e">// note: execution begins on the UI thread
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">auto</span> copiedWidget <span style="color:#f92672">=</span> widget;
+    hide_name widget; <span style="color:#75715e">// hide the original reference!
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// note: after this, the remainder of the function executes on another
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// thread, meaning that operating on &#39;widget&#39; could cause a data race 
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">co_await</span> winrt<span style="color:#f92672">::</span>resume_background();
+
+    copiedWidget<span style="color:#f92672">-&gt;</span>Reset();
+    copiedWidget<span style="color:#f92672">-&gt;</span>Reload();
+}
+</code></pre></div>
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2023/12/20/why-chess-bots.html">Why chess bots are virtually unbeatable</a></h1>
 		
 
