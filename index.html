@@ -24,6 +24,25 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/01/16/ai-sleeper-agents.html">AI sleeper agents</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/01/16/ai-sleeper-agents.html" class="u-url"><time class="dt-published" datetime="2024-01-16 23:59:06 &#43;0200">Jan 16, 2024</time></a>
+
+		<div class="e-content">
+			 <p>A fascinating summary of recent AI research: <a href="https://www.astralcodexten.com/p/ai-sleeper-agents">AI Sleeper Agents</a></p>
+<blockquote>
+<p>A sleeper agent is an AI that acts innocuous until it gets some trigger, then goes rogue.</p>
+<p>&hellip;</p>
+<p>So there’s been a dispute in the AI safety community - if for some reason you start with an AI sleeper agent, and you train it on normal harmlessness, will that automatically remove the sleeper-agent-nature from it? This paper demonstrates that it won’t.</p>
+</blockquote>
+<p>The reasoning that AIs show in evaluating whether to be deceptive or not is the most fascinating part to me. I really would not have expected that the current language models would be capable of &ldquo;thinking&rdquo; along these lines.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/01/11/passing-a-struct.html">Passing a struct of 3 or more words is slow on AMD64</a></h1>
 		
 
@@ -45,7 +64,8 @@ f(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <s
 ...
 <span style="color:#66d9ef">auto</span> v <span style="color:#f92672">=</span> Vector{ .x <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, .y <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, .z <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span> };
 f(<span style="color:#f92672">&amp;</span>v);
-</code></pre></div><p>Only tangentially related, but one of the comments on GitHub points out that GCC and Clang have support for efficient vector structs: <a href="https://clang.llvm.org/docs/LanguageExtensions.html#vectors-and-extended-vectors">Clang docs</a>, <a href="https://gcc.gnu.org/onlinedocs/gcc/Vector-Extensions.html">GCC docs</a>. <a href="https://godbolt.org/z/o95hr9rP9">Godbolt</a> shows that compilers generate vastly better code with this than naive struct passing due to more aggressive SIMD optimizations, which also happens to bypass the above issue. <a href="https://stackoverflow.com/questions/38750994/what-is-ext-vector-type-and-simd">StackOverflow</a> has some additional explanation on what these attributes do.</p>
+</code></pre></div><p>The calling convention used on Windows is even worse, and prevents any structs or arrays to be broken up for argument passing: <a href="https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170">Microsoft docs</a>. Yikes!</p>
+<p>Only tangentially related, but one of the comments on GitHub points out that GCC and Clang have support for efficient vector structs: <a href="https://clang.llvm.org/docs/LanguageExtensions.html#vectors-and-extended-vectors">Clang docs</a>, <a href="https://gcc.gnu.org/onlinedocs/gcc/Vector-Extensions.html">GCC docs</a>. <a href="https://godbolt.org/z/o95hr9rP9">Godbolt</a> shows that compilers generate vastly better code with this than naive struct passing due to more aggressive SIMD optimizations, which also happens to bypass the above issue. <a href="https://stackoverflow.com/questions/38750994/what-is-ext-vector-type-and-simd">StackOverflow</a> has some additional explanation on what these attributes do.</p>
 
 		</div>
 	  </div>
