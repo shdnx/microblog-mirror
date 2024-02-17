@@ -24,6 +24,153 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html">Implementing order books in C&#43;&#43; and Rust - part 1/2</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html" class="u-url"><time class="dt-published" datetime="2024-02-17 04:29:16 &#43;0200">Feb 17, 2024</time></a>
+
+		<div class="e-content">
+			 <p>A fairly standard programming problem in the world of trading is building an order book. In this article, I will be showing one particular interesting aspect of this problem, and how to solve it in C++. In the next part, we will be trying to implement the same solution in Rust, which I&rsquo;ve been learning.</p>
+<h2 id="brief-introduction-orders-and-order-books">Brief introduction: orders and order books</h2>
+<p>An order represents willingness to buy or sell something: for example, <code>Buy AAPL 25 @ 137.85</code> would represent a buy order on the Apple stock (identified by the symbol <code>AAPL</code>) for a volume of 25 (i.e. 25 shares) at the price of (up to) 137.85. An exchange (also called stock exchange or market) maintains books with all active orders in them, allowing potential buyers and sellers to trade with each other.</p>
+<p>Order books tend to be split by side, and the orders are sorted so that an order with higher priority comes before an order with lower priority. Priority is usually determined by two things: the price first and foremost, and time second (to act as an arbitrator in the case of multiple orders with the same price). For buy orders, a higher price is better (since it is more likely to lead to a trade), and therefore has priority; for sell orders, it&rsquo;s the opposite.</p>
+<h2 id="defining-order-and-orderbook">Defining <code>Order</code> and <code>OrderBook</code></h2>
+<p>Let&rsquo;s start with some simple C++ code to define the types we need to represent an order book:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// Used for sorting orders
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    <span style="color:#66d9ef">double</span> price <span style="color:#f92672">=</span> NAN;
+    <span style="color:#66d9ef">uint64_t</span> seq_num <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">// for time-priority
+</span><span style="color:#75715e"></span>};
+
+<span style="color:#66d9ef">enum</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Side</span> {
+    None <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+    Bid, <span style="color:#75715e">// buy
+</span><span style="color:#75715e"></span>    Ask, <span style="color:#75715e">// sell
+</span><span style="color:#75715e"></span>};
+
+<span style="color:#66d9ef">using</span> OrderId <span style="color:#f92672">=</span> <span style="color:#66d9ef">uint32_t</span>;
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Order</span> {
+    <span style="color:#66d9ef">uint64_t</span> seq_num <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    OrderId id <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    Side side <span style="color:#f92672">=</span> Side<span style="color:#f92672">::</span>None;
+    <span style="color:#66d9ef">uint32_t</span> volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">double</span> price <span style="color:#f92672">=</span> NAN;
+
+    OrderKey <span style="color:#a6e22e">key</span>() <span style="color:#66d9ef">const</span> {
+        <span style="color:#66d9ef">return</span> OrderKey{
+            .price <span style="color:#f92672">=</span> price,
+            .seq_num <span style="color:#f92672">=</span> seq_num,
+        };
+    }
+};
+
+<span style="color:#75715e">// Comparators for OrderKey-s such that the orders most likely to trade come first.
+</span><span style="color:#75715e">// For buy orders (bids) this means price-descending order; for sell orders (asks) this means price-ascending order.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CompareBids</span> { ... };
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CompareAsks</span> { ... };
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderBook</span> {
+    std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span>OrderKey, Order, CompareBids<span style="color:#f92672">&gt;</span> bids;
+    std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span>OrderKey, Order, CompareAsks<span style="color:#f92672">&gt;</span> asks;
+};
+</code></pre></div><p>There are many different ways to structure the data, but here I opted to introduce an <code>OrderKey</code> structure which is used to keep all <code>Order</code>s properly sorted in their maps. <code>OrderKey</code> is strictly a subset of the fields of <code>Order</code>, which means that each map entry has some data duplication (both <code>price</code> and <code>seq_num</code> is stored in both the key and the value), but it makes the code much easier to work with.</p>
+<p>In this approach, we must take care to never accidentally modify an <code>Order</code>&rsquo;s <code>price</code> or <code>seq_num</code> without also updating the corresponding <code>OrderKey</code>, which requires the order to be removed and re-inserted to the map. (As of C++ 17 this can be done efficiently done using <a href="https://en.cppreference.com/w/cpp/container/map/extract"><code>std::map&lt;&gt;::extract()</code></a>.)</p>
+<p>Note that while it seems that some code duplication could be avoided by making <code>Order</code> inherit from <code>OrderKey</code>, I consider this to be a bad idea for a number of reasons:</p>
+<ol>
+<li>An <code>Order</code> is not an <code>OrderKey</code> in a sense where you&rsquo;d ever want an <code>Order</code> to be valid in a place where an <code>OrderKey</code> is accepted. Requiring an explicit call to <code>Order::key()</code> is much less confusing.</li>
+<li>It prevents <code>Order</code> from being constructed using the designated initializers syntax that I&rsquo;m using in <code>Order::key()</code>.</li>
+<li>It is not necessarily the case that as the code evolves, <code>Order</code> remains a superset of <code>OrderKey</code>. For example, <code>seq_num</code> arguably should not be a field in <code>Order</code> at all, as its only use is encoding time-priority.</li>
+</ol>
+<p>Of course, there are many things we could here. We could optimize <code>Order</code> to take up less memory, e.g. by using bit fields: keep 1 or 2 bits for side (depending on if you want to keep <code>Side::None</code> or not), and 31 or 30 bits for volume to reduce <code>sizeof(Order)</code> by 7 bytes. As I mentioned before, arguably we do not want <code>seq_num</code> to be a field in <code>Order</code> at all, which would save an additional 8 bytes. Saving memory at this scale is not really a relevant factor for overall memory consumption, but it can make a lot of difference for performance: the smaller our objects, the more of them can fit into caches.</p>
+<p>I am using <code>std::map</code> here to store the orders in the ordering we want them: now the top of the book (the orders that have the highest chance of trading) are the first elements in both collections. We could also use <code>std::priority_queue</code> to achieve the same thing, but <code>std::map</code> has a nice properties that will come in handy later. (We cannot use <code>std::set</code> because orders can change during lifetime, e.g. their volume might decrease if they are traded against, and <code>std::set</code> cannot allow that it would allow elements to be mutated such that their position should change.)</p>
+<h2 id="defining-exchange-and-implementing-insertion">Defining <code>Exchange</code> and implementing insertion</h2>
+<p>Next we should define an <code>Exchange</code> class that will contain all of our order books. We have to maintain the order book separately for each instrument, as orders on different instruments are completely unrelated to each other. However, we are going to add one extra caveat: we are going to assume that all orders are identified by an ID that is unique across books, and we want to be able to efficiently cancel orders buy specifying <strong>only</strong> their ID, without having to repeat the side.</p>
+<p>We could go about it like so:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderHandle</span> { <span style="color:#75715e">/*???*/</span> };
+
+<span style="color:#66d9ef">using</span> Symbol <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>string;
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Exchange</span> {
+    std<span style="color:#f92672">::</span>unordered_map<span style="color:#f92672">&lt;</span>Symbol, OrderBook<span style="color:#f92672">&gt;</span> order_book_by_symbol;
+    std<span style="color:#f92672">::</span>unordered_map<span style="color:#f92672">&lt;</span>OrderId, OrderHandle<span style="color:#f92672">&gt;</span> order_handle_by_id;
+    ...
+
+    <span style="color:#66d9ef">void</span> insert(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span>, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span>);
+    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">cancel</span>(OrderId);
+};
+</code></pre></div><p>Inserting an order means inserting it into the appropriate order book&rsquo;s appropriate side map (<code>bids</code> or <code>asks</code>), as well as registering it in <code>order_handle_by_id</code>. We do not yet know what <code>OrderHandle</code> will have to look like for <code>Exchange::cancel()</code> to be as efficient as possible, so we left that empty for now.</p>
+<p>Let&rsquo;s implement <code>Exchange::insert()</code> next:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> Exchange<span style="color:#f92672">::</span>insert(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span> symbol, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span> order) {
+    <span style="color:#75715e">// look up the order book if it already exists, otherwise insert it
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderBookIt, orderBookInserted] <span style="color:#f92672">=</span> order_book_by_symbol.try_emplace(symbol);
+    OrderBook<span style="color:#f92672">&amp;</span> orderBook <span style="color:#f92672">=</span> orderBookIt<span style="color:#f92672">-&gt;</span>second;
+
+    OrderHandle newHandle;
+    <span style="color:#66d9ef">if</span> (order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Bid) {
+        <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderIt, orderInserted] <span style="color:#f92672">=</span> orderBook.bids.try_emplace(order.key(), order);
+        assert(orderInserted <span style="color:#f92672">&amp;&amp;</span> <span style="color:#e6db74">&#34;Duplicate order key&#34;</span>);
+
+        <span style="color:#75715e">// TODO: fill out `newHandle`
+</span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">else</span> <span style="color:#a6e22e">if</span> (order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Ask) {
+        <span style="color:#75715e">// similarly...
+</span><span style="color:#75715e"></span>    }
+
+    order_handle_by_id.try_emplace(order.id, std<span style="color:#f92672">::</span>move(newHandle));
+}
+</code></pre></div><h2 id="implementing-efficient-order-cancellation">Implementing efficient order cancellation</h2>
+<p>How could we implement <code>Exchange::cancel()</code> as efficiently as possible?</p>
+<p>One option would be to have <code>OrderHandle</code> store all the information needed to locate the order: the containing order book, order side, and order key. However, this would make cancellation quite slow, as it would require 3 map lookups:</p>
+<ol>
+<li><code>order_handle_by_id</code> to find the <code>OrderHandle</code>,</li>
+<li><code>order_book_by_symbol</code> as we cannot store an <code>OrderBook*</code> directly unless we can guarantee that <code>order_book_by_symbol</code> will never rehash,</li>
+<li><code>OrderBook::bids</code> or <code>OrderBook::asks</code>.</li>
+</ol>
+<p>Looking at the order insertion code again, the insight for how to optimize this comes by realizing that at the end of order insertion, we have everything we need to effectively remove the order. It is just two things: a reference to the map that contains the order, and iterator referencing the order in the map. Since <code>std::map</code> guarantees address stability, we can rely on <code>std::map&lt;&gt;::iterator</code> to never be invalidated unless the corresponding element is removed, meaning that it is save to store.</p>
+<p>Unfortunately, we cannot have <code>OrderHandle</code> store these directly, because both the map type and the iterator type depend on the comparator used, which will be different between bids and asks. We would need to template <code>OrderHandle</code> on our comparator, which would prevent our bid and ask order handles to be stored together. That doesn&rsquo;t work.</p>
+<p>Type erasure to the rescue! We can encapsulate the order removal into a lambda expression at the end of order insertion, and save that in an <code>std::function</code> which can then go on to live inside our <code>OrderHandle</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderHandle</span> {
+    std<span style="color:#f92672">::</span>function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">void</span>()<span style="color:#f92672">&gt;</span> remove <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+};
+
+<span style="color:#66d9ef">void</span> Exchange<span style="color:#f92672">::</span>insert(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span> symbol, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span> order) {
+    ...
+    OrderHandle newHandle;
+
+    <span style="color:#66d9ef">if</span> (order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Bid) {
+        <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderIt, orderInserted] <span style="color:#f92672">=</span> orderbook.bids.try_emplace(order.key(), order);
+        assert(orderInserted <span style="color:#f92672">&amp;&amp;</span> <span style="color:#e6db74">&#34;Duplicate order key&#34;</span>);
+
+        newHandle.remove <span style="color:#f92672">=</span> [<span style="color:#f92672">&amp;</span>orderbook_side<span style="color:#f92672">=</span>orderbook.bids, orderIt]() {
+            orderbook_side.erase(orderIt);
+        };
+    }
+    ...
+}
+
+<span style="color:#66d9ef">bool</span> Exchange<span style="color:#f92672">::</span>cancel(OrderId orderId) {
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> orderHandleIt <span style="color:#f92672">=</span> order_handle_by_id.find(orderId);
+    <span style="color:#66d9ef">if</span> (orderHandleIt <span style="color:#f92672">==</span> order_handle_by_id.end()) {
+        <span style="color:#66d9ef">return</span> false; <span style="color:#75715e">// no such order
+</span><span style="color:#75715e"></span>    }
+    <span style="color:#66d9ef">const</span> OrderHandle<span style="color:#f92672">&amp;</span> orderHandle <span style="color:#f92672">=</span> orderHandleIt<span style="color:#f92672">-&gt;</span>second;
+
+    orderHandle.remove();
+    order_handle_by_id.erase(orderHandleIt);
+    <span style="color:#66d9ef">return</span> true;
+}
+</code></pre></div><p>Neat! We managed to cut down our 3 map lookups needed to cancel an order to just 1!
+We do have to pay attention that if we ever remove an order from an order book, we also must remove it from <code>Exchange::order_handle_by_id</code>, otherwise the <code>OrderHandle</code> will dangle due to the invalidated iterator.</p>
+<p>Unfortunately, one bug has managed to sneak in, of the kind that C++ is notorious for: the reference to <code>orderbook.bids</code> (or <code>orderbook.asks</code>) is only valid so long as the <code>OrderBook</code> object stays in place, but as I&rsquo;ve indicated before, the <code>std::unordered_map</code> containing the <code>OrderBook</code> objects may rehash, which involves relocating all of it elements.</p>
+<p>This is sometimes possible to prevent by reserving enough capacity for the <code>std::unordered_map</code> upfront, but this is not always practical: often, it is difficult or impossible to give a reasonable upper bound on the maximum size the map will ever have, or if it is, the number is so huge that it is prohibitively expensive to actually do so.
+The easiest, and guaranteed way of solving this is to store the <code>OrderBook</code>s in an <code>std::unique_ptr</code>.</p>
+<p>This issue is very nasty, as during testing with just one or two symbols everything will appear to be working perfectly, but in production, when exposed to a large number of different symbols, the application will very quickly hit undefined behaviour, and crash in the best-case scenario. Ah, C++!</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/02/08/advice-is-disproportionately.html">Advice is disproportionately written by defective people</a></h1>
 		
 
