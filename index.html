@@ -24,6 +24,264 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/03/04/graphs-are-hard.html">Graphs are hard</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/03/04/graphs-are-hard.html" class="u-url"><time class="dt-published" datetime="2024-03-04 23:28:37 &#43;0200">Mar 4, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://www.hillelwayne.com/post/graph-types/">The Hunt for the Missing Data Type</a> (<a href="https://news.ycombinator.com/item?id=39592444">discussion on Hacker News</a>) is an article exploring why are graph implementations so rare while graph problems are so common:</p>
+<blockquote>
+<p>I see graphs everywhere and use them to analyze all sorts of systems. At the same time, I dread actually using graphs in my code. There is almost no graph support in any mainstream language. None have it as a built-in type, very few have them in the standard library, and many don’t have a robust third-party library in the ecosystem. Most of the time, I have to roll graphs from scratch. There’s a gap between how often software engineers could use graphs and how little our programming ecosystems support them. Where are all the graph types?</p>
+</blockquote>
+<p>They have interviewed multiple experts, and they all gave the same answer: graphs are just hard.</p>
+<blockquote>
+<ul>
+<li>There are many different kinds of graphs</li>
+<li>There are many different representations of each kind of graph</li>
+<li>There are many different graph algorithms</li>
+<li>Graph algorithm performance is very sensitive to graph representation and implementation details</li>
+<li>People run very expensive algorithms on very big graphs.</li>
+</ul>
+<p>This explains why languages don’t support graphs in their standard libraries: too many design decisions, too many tradeoffs, and too much maintenance burden. It explains why programmers might avoid third party graph libraries, because they’re either too limited or too slow. And it explains why programmers might not want to think about things in terms of graphs except in extreme circumstances: it’s just too hard to work with them.</p>
+</blockquote>
+<p>For what it&rsquo;s worth, this matches my experience: graphs are really nice and elegant in theory, but in practice they are too hard and too messy.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/02/26/implementing-order-books.html">Implementing order books in C&#43;&#43; and Rust - part 2/3</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/02/26/implementing-order-books.html" class="u-url"><time class="dt-published" datetime="2024-02-26 01:40:41 &#43;0200">Feb 26, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html">In the previous part</a>, we have sketched out the structure of implementing a simple order book in C++, supporting order insertion and efficient cancellation. (Implementing uncrossing, that is, trades when a buy order and a sell order agree on a price, is an exercise left to the reader, as is implementing order modification.)</p>
+<p>In this article, let&rsquo;s explore how we can implement the same thing in Rust, starting with the basic types we need before we can even start implementing an orderbook.</p>
+<h2 id="defining-order-and-orderkey">Defining <code>Order</code> and <code>OrderKey</code></h2>
+<p>Let&rsquo;s start by defining the same <code>Order</code> and <code>OrderKey</code> types:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Side</span> {
+    Buy,
+    Sell,
+}
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
+    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+}
+
+<span style="color:#75715e">#[derive(Debug, Clone)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Order</span> {
+    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+    <span style="color:#66d9ef">pub</span> id: <span style="color:#66d9ef">u32</span>,
+    <span style="color:#66d9ef">pub</span> side: <span style="color:#a6e22e">Side</span>,
+    <span style="color:#66d9ef">pub</span> volume: <span style="color:#66d9ef">i32</span>,
+    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
+}
+
+<span style="color:#66d9ef">impl</span> Order {
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">key</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#a6e22e">OrderKey</span> {
+        OrderKey {
+            price: <span style="color:#a6e22e">self</span>.price,
+            seq_num: <span style="color:#a6e22e">self</span>.seq_num,
+        }
+    }
+}
+</code></pre></div><p>So far here, there shouldn&rsquo;t be anything too surprising, except perhaps the <code>#[derive(...)]</code> syntax, which can be used to auto-generate implementations of traits. Traits are a sort of a mix between C++ concepts and abstract classes (interfaces), and I&rsquo;m told most similar to Haskell&rsquo;s meta-classes. For example, implementing the <code>Eq</code> trait requires that you implement equality comparison as a function, and it, well, makes values of this type equality-comparable: the equivalent of defining <code>operator==</code> in C++. <code>derive()</code>ing <code>Eq</code> then is the Rust equivalent to writing <code>bool operator==(...) = default;</code> in C++.</p>
+<p>The code above actually would fail to compile due to attempting to derive <code>Eq</code> for <code>OrderKey</code>. The hint as to why lies in the existence of <a href="https://doc.rust-lang.org/std/cmp/trait.PartialEq.html"><code>PartialEq</code></a>: floats do not have a total equivalence relation, namely because <code>NaN</code>s violate the requirement of reflexivity: <code>x != x</code> if <code>x = NaN</code>. Therefore, floats (<code>f32</code>, <code>f64</code>) cannot be <code>Eq</code> in Rust, only <code>PartialEq</code>. Our <code>OrderKey</code> structure contains a <code>price: f64</code> field, which makes it impossible to derive <code>Eq</code> for. If we have a guarantee though that price cannot possible be <code>NaN</code>, then we can tell the compiler that it&rsquo;s all good by implementing <code>Eq</code> manually:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
+    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+}
+
+<span style="color:#75715e">// we check the price for NaN before we can get here
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span> Eq <span style="color:#66d9ef">for</span> OrderKey {}
+</code></pre></div><p>Rust is big on explicitness in general. For instance, you can implement the <code>Clone</code> trait by implementing the <code>clone(&amp;self) -&gt; Self</code> method, used for cloning the object, in a similar manner as a C++ copy-constructor would, except that in Rust:</p>
+<ul>
+<li>types are not cloneable unless you explicitly make them so,</li>
+<li>you always have to call <code>clone()</code> manually, except if you implement the <code>Copy</code> trait, which makes it happen implicitly whenever an object of this type is passed by value.</li>
+</ul>
+<p>Rust has pretty good documentation, especially for basics like this, and they also explain all this: <a href="https://doc.rust-lang.org/std/marker/trait.Copy.html">Trait std::marker::Copy</a>.</p>
+<h2 id="putting-the-ord-in-the-orderkey">Putting the <code>Ord</code> in the <code>OrderKey</code></h2>
+<p>The closest Rust equivalent of the C++ <code>std::map&lt;&gt;</code> is <a href="https://doc.rust-lang.org/std/collections/struct.BTreeMap.html"><code>std::collections::BTreeMap&lt;&gt;</code></a>, but there&rsquo;s one big difference: while <code>std::map</code> is typically implemented as a red-black tree, <code>BTreeMap</code> is implemented as a (you guessed it) <a href="https://en.wikipedia.org/wiki/B-tree">B-Tree</a> (which is not the same as a binary search tree!) that stores multiple elements in one node to improve data locality. I expect, though I haven&rsquo;t benchmarked it, that Rust&rsquo;s <code>BTreeMap</code> would generally significantly outperform C++&rsquo;s <code>std::map</code>, while providing essentially the same functionality. Nice!</p>
+<p>In <code>std::map</code> we could pass in a comparator type to be used as the third template argument, but Rust&rsquo;s <code>BTreeMap</code> is more opinionated than that: it requires that our key type implement <code>Ord</code>, the trait for total ordering. This is certainly possible to do, but requires that we put the order&rsquo;s side into <code>OrderKey</code> as well, otherwise we cannot tell whether a lower of higher price is better:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> core::cmp::Ordering;
+<span style="color:#f92672">..</span>.
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    <span style="color:#66d9ef">pub</span> side: <span style="color:#a6e22e">Side</span>,
+    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>, <span style="color:#75715e">// assume non-NaN
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+}
+
+<span style="color:#66d9ef">impl</span> Eq <span style="color:#66d9ef">for</span> OrderKey {}
+
+<span style="color:#66d9ef">impl</span> Ord <span style="color:#66d9ef">for</span> OrderKey {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">OrderKey</span>) -&gt; <span style="color:#a6e22e">Ordering</span> {
+        <span style="color:#66d9ef">if</span> self.price <span style="color:#f92672">&lt;</span> other.price {
+            <span style="color:#66d9ef">match</span> self.side {
+                Side::Buy <span style="color:#f92672">=&gt;</span> Ordering::Greater,
+                Side::Sell <span style="color:#f92672">=&gt;</span> Ordering::Less,
+            }
+        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> self.price <span style="color:#f92672">&gt;</span> other.price {
+            <span style="color:#66d9ef">match</span> self.side {
+                Side::Buy <span style="color:#f92672">=&gt;</span> Ordering::Less,
+                Side::Sell <span style="color:#f92672">=&gt;</span> Ordering::Greater,
+            }
+        } <span style="color:#66d9ef">else</span> {
+            self.seq_num.cmp(<span style="color:#f92672">&amp;</span>other.seq_num)
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span> PartialOrd <span style="color:#66d9ef">for</span> OrderKey {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">partial_cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">OrderKey</span>) -&gt; Option<span style="color:#f92672">&lt;</span>Ordering<span style="color:#f92672">&gt;</span> {
+        Some(self.cmp(other))
+    }
+}
+</code></pre></div><p>This shows off Rust&rsquo;s pattern-matching, which makes this type of code a pleasure to write compared to C++: even in a simple scenario like this one, the equivalent C++ <code>switch (self.side) { ... }</code> would be more to annoying to write, because:</p>
+<ul>
+<li><code>switch</code> and <code>case</code> are not expressions and therefore do not yield values,</li>
+<li>even if you <code>switch</code> on an enum and you have a <code>case</code> for each possible value, the compiler is not satisfied: this is because in C++, it is completely legal for an enum to have a value that is not one of its listed options.</li>
+</ul>
+<p>For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">enum</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Side</span> {
+    Buy <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>,
+    Sell <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>,
+};
+...
+<span style="color:#66d9ef">auto</span> weird_side <span style="color:#f92672">=</span> <span style="color:#66d9ef">static_cast</span><span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">3</span>); <span style="color:#75715e">// this is ok!
+</span></code></pre></div><p>Admittedly, this is <em>terrible</em> code, but it is perfectly legal, due to the legacy of C <code>enum</code>s being just named integer literals. This is not possible in safe Rust, and triggers undefined behaviour in unsafe Rust: one of the many cases where Rust is stricter than C++, but as a result can optimize better.</p>
+<p>Okay, so now that <code>OrderKey</code> is <code>Ord</code>, we can use it as a key in <code>BTreeMap</code>. Unfortunately, we ended up with much less efficient code than the C++ version, due to having to store the order side in <code>OrderKey</code>, and branching on side in <code>cmp()</code>. One way to deal with this situation is to define wrapper types around <code>OrderKey</code> and implement <code>Ord</code> differently for them. For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> core::cmp::Ordering;
+<span style="color:#f92672">..</span>.
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
+    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+}
+
+<span style="color:#66d9ef">impl</span> Eq <span style="color:#66d9ef">for</span> OrderKey {}
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">BidKey</span>(OrderKey);
+
+<span style="color:#66d9ef">impl</span> Ord <span style="color:#66d9ef">for</span> BidKey {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">BidKey</span>) -&gt; <span style="color:#a6e22e">Ordering</span> {
+        <span style="color:#66d9ef">if</span> self.<span style="color:#ae81ff">0.</span>price <span style="color:#f92672">&lt;</span> other.<span style="color:#ae81ff">0.</span>price {
+            Ordering::Greater
+        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> self.<span style="color:#ae81ff">0.</span>price <span style="color:#f92672">&gt;</span> other.<span style="color:#ae81ff">0.</span>price {
+            Ordering::Less
+        } <span style="color:#66d9ef">else</span> {
+            self.<span style="color:#ae81ff">0.</span>seq_num.cmp(<span style="color:#f92672">&amp;</span>other.<span style="color:#ae81ff">0.</span>seq_num)
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span> PartialOrd <span style="color:#66d9ef">for</span> BidKey {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">partial_cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">BidKey</span>) -&gt; Option<span style="color:#f92672">&lt;</span>Ordering<span style="color:#f92672">&gt;</span> {
+        Some(self.cmp(other))
+    }
+}
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">AskKey</span>(OrderKey);
+
+<span style="color:#66d9ef">impl</span> Ord <span style="color:#66d9ef">for</span> AskKey {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">AskKey</span>) -&gt; <span style="color:#a6e22e">Ordering</span> {
+        <span style="color:#66d9ef">if</span> self.<span style="color:#ae81ff">0.</span>price <span style="color:#f92672">&lt;</span> other.<span style="color:#ae81ff">0.</span>price {
+            Ordering::Less
+        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> self.<span style="color:#ae81ff">0.</span>price <span style="color:#f92672">&gt;</span> other.<span style="color:#ae81ff">0.</span>price {
+            Ordering::Greater
+        } <span style="color:#66d9ef">else</span> {
+            self.<span style="color:#ae81ff">0.</span>seq_num.cmp(<span style="color:#f92672">&amp;</span>other.<span style="color:#ae81ff">0.</span>seq_nym)
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span> PartialOrd <span style="color:#66d9ef">for</span> AskKey {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">partial_cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">AskKey</span>) -&gt; Option<span style="color:#f92672">&lt;</span>Ordering<span style="color:#f92672">&gt;</span> {
+        Some(self.cmp(other))
+    }
+}
+</code></pre></div><p>Here <code>BidKey</code> and <code>AskKey</code> are both tuple types, hence the need for <code>self.0</code> to access the underlying <code>OrderKey</code>. We had to duplicate a lot of the code unfortunately to achieve this.</p>
+<h2 id="another-approach-using-traits">Another approach: using traits</h2>
+<p>Another way to solve the issue and deduplicate the code is by using Rust&rsquo;s trait system. The idea is as follows: we define the trait (concept) of an orderbook side which knows how to decide if a particular price is better than another. Then we define two types (Bid and Ask) that implement that concept. Finally, the we make <code>OrderKey</code> generic over these.</p>
+<p>Let&rsquo;s see:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> core::cmp::Ordering;
+<span style="color:#66d9ef">use</span> std::marker::PhantomData;
+
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> OrderbookSide: Eq {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Opposite</span>: <span style="color:#a6e22e">OrderbookSide</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">is_price_better_than</span>(left: <span style="color:#66d9ef">f64</span>, right: <span style="color:#66d9ef">f64</span>) -&gt; <span style="color:#66d9ef">bool</span>;
+}
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bid</span>;
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Ask</span>;
+
+<span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Bid {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Opposite</span> <span style="color:#f92672">=</span> Ask;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">is_price_better_than</span>(left: <span style="color:#66d9ef">f64</span>, right: <span style="color:#66d9ef">f64</span>) -&gt; <span style="color:#66d9ef">bool</span> {
+        left <span style="color:#f92672">&gt;</span> right
+    }
+}
+
+<span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Ask {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Opposite</span> <span style="color:#f92672">=</span> Bid;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">is_price_better_than</span>(left: <span style="color:#66d9ef">f64</span>, right: <span style="color:#66d9ef">f64</span>) -&gt; <span style="color:#66d9ef">bool</span> {
+        left <span style="color:#f92672">&lt;</span> right
+    }
+}
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>, <span style="color:#75715e">// assume not-NaN
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+    _side: <span style="color:#a6e22e">PhantomData</span><span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>,
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span> Eq <span style="color:#66d9ef">for</span> OrderKey<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span> {}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span> Ord <span style="color:#66d9ef">for</span> OrderKey<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Self</span>) -&gt; <span style="color:#a6e22e">Ordering</span> {
+        <span style="color:#66d9ef">if</span> self.price <span style="color:#f92672">==</span> other.price {
+            self.seq_num.cmp(<span style="color:#f92672">&amp;</span>other.seq_num)
+        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> Side::is_price_better_than(self.price, other.price) {
+            Ordering::Less
+        } <span style="color:#66d9ef">else</span> {
+            Ordering::Greater
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span> PartialOrd <span style="color:#66d9ef">for</span> OrderKey<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">partial_cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Self</span>) -&gt; Option<span style="color:#f92672">&lt;</span>Ordering<span style="color:#f92672">&gt;</span> {
+        Some(self.cmp(other))
+    }
+}
+</code></pre></div><p>One peculiar you thing you might notice is the field <code>_side: PhantomData&lt;Side&gt;</code> in <code>OrderKey</code>. <a href="https://doc.rust-lang.org/rust-by-example/generics/phantom.html"><code>PhantomData</code></a> here is necessary, otherwise rustc will not accept our program, due to the unused <code>Side</code> type parameter in the struct definition. Fortunately, it does not pose a run-time cost: Rust supports zero-size types (such as our <code>Bid</code> and our <code>Ask</code> marker types) and so <code>PhantomData&lt;T&gt;</code> does not actually increase the size of <code>OrderKey</code>.</p>
+<p>The <code>&lt;Side: OrderbookSide&gt;</code> syntax represents a <em>trait bound</em>: requirements on what traits the type parameter must implement. Rust would not otherwise allow the use of associated functions and types (such as <code>is_price_better_than</code> and <code>Opposite</code>) on <code>Side</code>, unlike in C++. Rust traits act as C++ template specializations, concepts, and also interfaces (abstract base classes).</p>
+<p>Even this way, our Rust code is much longer and more verbose than the equivalent C++ one, mainly due to <code>BTreeMap</code> requiring the key to be <code>Ord</code>, which in turn means that it also needs to be <code>PartialOrd</code>, <code>PartialEq</code>, and <code>Eq</code>. We did not have to bother with any of this in C++, as <code>std::map</code> just lets us pass in a comparator as the third template argument. I don&rsquo;t see any real reason why Rust is less ergonomic here, so I&rsquo;m going to chalk it up to a difference in culture and/or philosophy. I <em>can</em> see a sort-of theoretical purity to forcing the same ordering and equality implementations to apply in all cases, but I&rsquo;m not a fan of the imposed cost.</p>
+<p>In the next article of the series, we will be implementing the <code>Orderbook</code> type and build support for inserting and cancelling orders.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/02/24/this-is-why.html">This is why we keep getting scammed and phished</a></h1>
 		
 
@@ -53,7 +311,7 @@
 	
 	  <div class="h-entry">
 		
-			<h1><a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html">Implementing order books in C&#43;&#43; and Rust - part 1/2</a></h1>
+			<h1><a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html">Implementing order books in C&#43;&#43; and Rust - part 1/3</a></h1>
 		
 
 		<a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html" class="u-url"><time class="dt-published" datetime="2024-02-17 04:29:16 &#43;0200">Feb 17, 2024</time></a>
@@ -96,8 +354,21 @@
 
 <span style="color:#75715e">// Comparators for OrderKey-s such that the orders most likely to trade come first.
 </span><span style="color:#75715e">// For buy orders (bids) this means price-descending order; for sell orders (asks) this means price-ascending order.
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CompareBids</span> { ... };
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CompareAsks</span> { ... };
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CompareBids</span> {
+    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">const</span> OrderKey<span style="color:#f92672">&amp;</span> lhs, <span style="color:#66d9ef">const</span> OrderKey<span style="color:#f92672">&amp;</span> rhs) <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">noexcept</span> {
+        <span style="color:#66d9ef">if</span> (lhs.price <span style="color:#f92672">&gt;</span> rhs.price) <span style="color:#66d9ef">return</span> true;
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (lhs.price <span style="color:#f92672">==</span> rhs.price) <span style="color:#66d9ef">return</span> lhs.seq_num <span style="color:#f92672">&lt;</span> rhs.seq_num;
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">return</span> false;
+    }
+};
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CompareAsks</span> {
+    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">const</span> OrderKey<span style="color:#f92672">&amp;</span> lhs, <span style="color:#66d9ef">const</span> OrderKey<span style="color:#f92672">&amp;</span> rhs) <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">noexcept</span> {
+        <span style="color:#66d9ef">if</span> (lhs.price <span style="color:#f92672">&lt;</span> rhs.price) <span style="color:#66d9ef">return</span> true;
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (lhs.price <span style="color:#f92672">==</span> rhs.price) <span style="color:#66d9ef">return</span> lhs.seq_num <span style="color:#f92672">&lt;</span> rhs.seq_num;
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">return</span> false;
+    }
+};
 
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderBook</span> {
     std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span>OrderKey, Order, CompareBids<span style="color:#f92672">&gt;</span> bids;
@@ -194,6 +465,7 @@ We do have to pay attention that if we ever remove an order from an order book, 
 <p>This is sometimes possible to prevent by reserving enough capacity for the <code>std::unordered_map</code> upfront, but this is not always practical: often, it is difficult or impossible to give a reasonable upper bound on the maximum size the map will ever have, or if it is, the number is so huge that it is prohibitively expensive to actually do so.
 The easiest, and guaranteed way of solving this is to store the <code>OrderBook</code>s in an <code>std::unique_ptr</code>.</p>
 <p>This issue is very nasty, as during testing with just one or two symbols everything will appear to be working perfectly, but in production, when exposed to a large number of different symbols, the application will very quickly hit undefined behaviour, and crash in the best-case scenario. Ah, C++!</p>
+<p><a href="https://blog.gaborkozar.me/2024/02/26/implementing-order-books.html">In the next part of the series</a>, we will begin trying to implement the same things in Rust.</p>
 
 		</div>
 	  </div>
