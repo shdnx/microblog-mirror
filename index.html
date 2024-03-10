@@ -24,6 +24,317 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/03/11/implementing-order-books.html">Implementing order books in C&#43;&#43; and Rust - part 3/3</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/03/11/implementing-order-books.html" class="u-url"><time class="dt-published" datetime="2024-03-11 00:25:02 &#43;0200">Mar 11, 2024</time></a>
+
+		<div class="e-content">
+			 <p>In <a href="https://blog.gaborkozar.me/2024/02/26/implementing-order-books.html">the previous part</a> we have started working on our Rust orderbook re-implementation of <a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html">the C++ original</a>, and defined the types <code>Order</code> and <code>OrderKey&lt;Side&gt;</code>, where <code>Side</code> is a type implementing the <code>OrderbookSide</code> trait: either <code>Bid</code> (for buy orders) or <code>Ask</code> (for sell orders).</p>
+<h2 id="defining-orderhandle">Defining <code>OrderHandle</code></h2>
+<p>Let&rsquo;s try to implement inserting an order into the orderbook in the same way we have done in C++. First, let&rsquo;s define the <code>OrderHandle</code> and <code>Orderbook</code> types:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderHandle</span> {
+    remove_fn: Box<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">dyn</span> FnOnce()<span style="color:#f92672">&gt;</span>,
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Orderbook</span> {
+    bids: <span style="color:#a6e22e">BTreeMap</span><span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Bid<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span>,
+    asks: <span style="color:#a6e22e">BTreeMap</span><span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Ask<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span>,
+}
+
+<span style="color:#66d9ef">impl</span> Orderbook {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>() -&gt; <span style="color:#a6e22e">Orderbook</span> {
+        Orderbook {
+            bids: <span style="color:#a6e22e">BTreeMap</span>::new(),
+            asks: <span style="color:#a6e22e">BTreeMap</span>::new(),
+        }
+    }
+
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>In the previous article I have already introduced <code>BTreeMap</code>, which we will be using instead of <code>std::map</code> in C++, to similar semantics, with one important caveat that we will get to later. We have implemented <code>Ord</code> for <code>OrderKey&lt;Side&gt;</code> to be able to use as keys here.</p>
+<p>Note the <code>Orderbook::new()</code> implementation: in Rust, there is no such thing as a default constructor (the closest is <code>Default::default()</code> for types that implement the <code>Default</code> trait), so you have to initialize every field explicitly and manually. The convention is the define an associated <code>new()</code> function (the equivalent of a <code>static</code> method in C++), but this is not required by the language.</p>
+<p><code>OrderHandle</code> deserves some explanation as well. For reference, this is how we defined it in C++:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderHandle</span> {
+    std<span style="color:#f92672">::</span>function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">void</span>()<span style="color:#f92672">&gt;</span> remove <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+};
+</code></pre></div><p>We know that <code>std::function</code> in C++ provides type erasure for callable types (such as lambda expressions), and therefore stores the callable object on the heap (barring small-function optimization). In the Rust implementation, we want to achieve the same result, which we can with the combination of two features: <code>Box&lt;&gt;</code> and <code>dyn Trait</code>. Let&rsquo;s start with <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html"><code>Box&lt;&gt;</code></a> because that is easier: this is the Rust version of <code>std::unique_ptr&lt;&gt;</code>.</p>
+<p><a href="https://doc.rust-lang.org/std/keyword.dyn.html"><code>dyn Trait</code></a> is the Rust way of describing any type that implements the <code>Trait</code> trait; in this case, <a href="https://doc.rust-lang.org/std/ops/trait.FnOnce.html"><code>FnOnce()</code></a>: the trait for functions that may not be called multiple times because the call function takes <code>self</code> by value (moving by default). The equivalent to C++ would be an abstract base class (interface as it is called in other languages) called <code>FnOnce</code> that defines a pure virtual method <code>call_once()</code>, which every function, lambda expression, and otherwise callable type must implement. This would allow us to store a <code>FnOnce</code> pointer or reference (e.g. <code>std::unique_ptr&lt;FnOnce&gt;</code>), relying on dynamic dispatch (via a vtable lookup) to call the correct <code>call_once()</code> implementation. In C++, this is not how you treat callable objects, because it would force every single callable (including every function!) object to contain an extra, hidden vptr field that points to the concrete type&rsquo;s vtable, increasing memory use and costing runtime performance. Instead, this is only done when you actually want type erasure and dynamic dispatch of a function and you opt-in to this by using <code>std::function&lt;&gt;</code>. However, inheriting from a base class with any virtual methods always incurs the overhead of a vptr in C++, whether you ever need it for dynamic dispatch or not.</p>
+<p>Rust has no such thing as inheritance, the closest thing it has to base classes are traits. Because traits are so ubiquitous (think of e.g. the <code>Eq</code>, <code>Ord</code>, and <code>Add</code> traits), the C++ (and C#, Java, etc.) approach is not workable. Instead, in Rust, you only pay the overhead of dynamic dispatch when you explicitly request that feature by using the <code>dyn</code> keyword. This makes the <code>dyn Trait</code> type have an compile-time unknown size: it depends on the size of the implementing object which is only known at runtime (the entire point of using dynamic dispatch!), forcing us to use pointer indirection. In this case, we need to store the function and so need ownership of it: therefore, <code>Box&lt;&gt;</code>, though any other smart pointer type, such as <code>Rc&lt;&gt;</code> or <code>Arc&lt;&gt;</code> (the equivalents of the C++ <code>std::shared_ptr&lt;&gt;</code>) would also work.</p>
+<h2 id="implementing-orderbookget_side">Implementing <code>Orderbook::get_side()</code></h2>
+<p>For our <code>Orderbook</code> class, we will attempt to define a similar API as in C++, so something like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span> Orderbook {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_side</span><span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> <span style="color:#f92672">??</span>;
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">insert</span><span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, order: <span style="color:#a6e22e">Order</span>) -&gt; <span style="color:#a6e22e">OrderHandle</span>;
+}
+</code></pre></div><p><code>insert()</code> will use <code>get_side()</code> so let&rsquo;s start there. What should this function return? For a refresher, here is our C++ implementation:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span>Side S<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> get_side() {
+    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">constexpr</span> (S <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Bid) <span style="color:#66d9ef">return</span> bids;
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">constexpr</span> (S <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Ask) <span style="color:#66d9ef">return</span> asks;
+    <span style="color:#66d9ef">else</span> <span style="color:#a6e22e">__builtin_unreachable</span>();
+}
+</code></pre></div><p>In Rust, we cannot just hand-wave the return type away like so, we have to name a type. We also cannot do compile-time branching like C++ <code>if constexpr</code>, so we have to delegate the implementation to <code>OrderbookSide::get_orders()</code>. Let&rsquo;s revisit the relevant definitions from the previous post:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">trait</span> OrderbookSide: Copy <span style="color:#f92672">+</span> Eq <span style="color:#f92672">+</span> Sized <span style="color:#f92672">+</span> <span style="color:#f92672">&#39;</span>static {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span>;
+}
+
+<span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Bid {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span> {
+        <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> orderbook.bids
+    }
+}
+
+<span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Ask {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span> {
+        <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> orderbook.asks
+    }
+}
+</code></pre></div><p>In Rust, this is the only way (that I know of) of doing compile-time branching: using traits. That is a lot more code than the C++ version! But with that in place, we can finally define <code>Orderbook::get_side()</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_side</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span> {
+    Side::get_orders(self)
+}
+</code></pre></div><p>It is worth highlighting an important way in which Rust generics differ from C++ templates, which is that generics are much more restrictive. C++ assumes that any code you wrote using templates is a-okay unless it fails to compile a particular instantiation, meaning that <code>get_side()</code> can be used without any particular difficulties&hellip; that is, unless you count the fact that the IDE cannot help you with the return type of <code>get_side()</code> and what methods are callable on it. A human can prove that it&rsquo;ll always be a <code>std::unordered_map&lt;OrderKey, Order, Something&gt;</code>, but the tooling is lacking, also because there&rsquo;s nothing stopping you from writing code where <code>get_side()</code> will return completely different types for different <code>Side</code> values.</p>
+<p>Rust, much like Java or C#, takes the opposite approach and doesn&rsquo;t let you do anything to generic types unless you have constrained (bound) it. So <code>Orderbook::get_side()</code> needs the <code>Side: OrderbookSide</code> bound: otherwise, Rust will refuse compilation, saying that <code>Side</code> might not have an associated function <code>get_orders()</code>.</p>
+<p>Furthermore, this would <strong>not work</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">trait</span> OrderbookSide {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">OrderMap</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Self::OrderMap;
+}
+
+<span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Bid {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">OrderMap</span> <span style="color:#f92672">=</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Self::OrderMap {
+        <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> orderbook.bids
+    }
+}
+
+<span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Ask {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">OrderMap</span> <span style="color:#f92672">=</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Self::OrderMap {
+        <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> orderbook.asks
+    }
+}
+</code></pre></div><p>Here is the diagnostics:</p>
+<pre tabindex="0"><code>error[E0308]: mismatched types
+   --&gt; blogpost.rs:180:9
+    |
+179 |     fn get_side&lt;Side: OrderbookSide&gt;(&amp;mut self) -&gt; &amp;mut BTreeMap&lt;OrderKey&lt;Side&gt;, Order&gt; {
+    |                                                    ------------------------------------ expected `&amp;mut std::collections::BTreeMap&lt;OrderKey&lt;Side&gt;, Order&gt;` because of return type
+180 |         Side::get_orders(self)
+    |         ^^^^^^^^^^^^^^^^^^^^^^ expected `&amp;mut BTreeMap&lt;OrderKey&lt;Side&gt;, ...&gt;`, found `&amp;mut &lt;... as OrderbookSide&gt;::OrderMap`
+    |
+    = note: expected mutable reference `&amp;mut std::collections::BTreeMap&lt;OrderKey&lt;Side&gt;, Order&gt;`
+               found mutable reference `&amp;mut &lt;Side as OrderbookSide&gt;::OrderMap`
+help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::OrderMap` to `std::collections::BTreeMap&lt;OrderKey&lt;Side&gt;, Order&gt;`
+    |
+179 |     fn get_side&lt;Side: OrderbookSide&lt;OrderMap = std::collections::BTreeMap&lt;OrderKey&lt;Side&gt;, Order&gt;&gt;&gt;(&amp;mut self) -&gt; &amp;mut BTreeMap&lt;OrderKey&lt;Side&gt;, Order&gt; {
+    |                                    ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+</code></pre><p><code>Side::OrderMap</code> is an opaque, unconstrained type that we are trying to coerce into a <code>BTreeMap&lt;&gt;</code>, and Rust is having none of it. A fix would  be to add an additional constraint for <code>Side</code>, namely that <code>Side::OrderMap</code> is <code>BTreeMap&lt;OrderKey&lt;Side&gt;, Order&gt;</code>&hellip; but then we have gone full circle and we might as well name the type properly as we have done originally.</p>
+<h2 id="naive-orderbookinsert">Naive <code>Orderbook::insert()</code></h2>
+<p>Moving on to <code>Orderbook::insert()</code>, we have to make a small change to the return type: in C++ we have returned <code>OrderHandle::Invalid</code> (with <code>remote_fn = nullptr</code>) if the order was not inserted, but Rust does not allow null (outside of <code>unsafe</code> code using raw pointers), forcing to return an <code>Option&lt;OrderHandle&gt;</code> instead. This is probably a cleaner API indeed, but I&rsquo;d guess that the codegen ends up being worse (though I have not checked).</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span> Orderbook {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">insert</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, order: <span style="color:#a6e22e">Order</span>) -&gt; Option<span style="color:#f92672">&lt;</span>OrderHandle<span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">let</span> order_key <span style="color:#f92672">=</span> OrderKey::<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span> {
+            price: <span style="color:#a6e22e">order</span>.price,
+            seq_num: <span style="color:#a6e22e">order</span>.seq_num,
+            _side: <span style="color:#a6e22e">PhantomData</span>,
+        };
+
+        <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+        <span style="color:#66d9ef">if</span> order.volume <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span> {
+            <span style="color:#66d9ef">return</span> None;
+        }
+
+        <span style="color:#66d9ef">let</span> same_side <span style="color:#f92672">=</span> self.get_side::<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>();
+        same_side.insert(order_key, order);
+
+        <span style="color:#66d9ef">let</span> order_handle <span style="color:#f92672">=</span> OrderHandle{
+            remove_fn: Box::new(<span style="color:#66d9ef">move</span> <span style="color:#f92672">||</span> {
+                same_side.remove_entry(<span style="color:#f92672">&amp;</span>order_key);
+            }),
+        };
+        Some(order_handle)
+    }
+}
+</code></pre></div><p>This is notably missing an optimization present in the C++ code: capturing an iterator to the inserted order map entry so that removal can occur without first having to perform a lookup. This is not possible to do with Rust&rsquo;s <code>BTreeMap</code> unfortunately, because a B-tree cannot provider the pointer stability that a node-based implementation can. So in Rust, we are stuck with capturing <code>same_side</code> by reference and <code>order_key</code> by value (moving it).</p>
+<p>It might look like that we are pretty much done, but Rust rejects our code. Here is the compiler diagnostics:</p>
+<pre tabindex="0"><code>error: lifetime may not live long enough
+   --&gt; blogpost.rs:198:24
+    |
+180 |       fn insert&lt;Side: OrderbookSide&gt;(&amp;mut self, order: Order) -&gt; Option&lt;OrderHandle&gt; {
+    |                                      - let's call the lifetime of this reference `'1`
+...
+198 |               remove_fn: Box::new(move || {
+    |  ________________________^
+199 | |                 same_side.remove_entry(&amp;order_key);
+200 | |             }),
+    | |______________^ cast requires that `'1` must outlive `'static`
+</code></pre><p>What the compiler is saying is that for this code to be safe, <code>&amp;mut self</code> must outlive <code>'static</code>, that is, the <code>Orderbook</code> object must provably continue to exist until the program terminates. This however we cannot guarantee in general, let alone in our current case, as our <code>Orderbook</code> lives inside a <code>HashMap</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Exchange</span> {
+    order_books: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span>String, Orderbook<span style="color:#f92672">&gt;</span>,
+    order_handles: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u32</span>, OrderHandle<span style="color:#f92672">&gt;</span>,
+}
+</code></pre></div><p>The issue that Rust is highlighting is that there is nothing stopping us from removing a value from <code>Exchange::order_books</code>, leaving <code>OrderHandle</code>s potentially storing a dangling reference (<code>same_side</code>). The <code>HashMap</code> might also rehash, an issue we already talked about with the C++ implementation.</p>
+<p>Even if we were somehow able to convince the compiler that neither of this is a concern, the code would still be rejected, as <code>Orderbook</code> may end up being used in a different context later.</p>
+<h2 id="idiomatic-orderbookinsert-using-ref-counting">Idiomatic <code>Orderbook::insert()</code> using ref-counting</h2>
+<p>As best as I can figure, the idiomatic Rust solution to this is guaranteeing that the <code>Orderbook</code> remains accessible while any <code>OrderHandle</code>s referencing it remain by using reference-counting. Rust&rsquo;s <a href="https://doc.rust-lang.org/std/rc/index.html"><code>Rc&lt;&gt;</code></a> however comes with a severe limitation: it does not provide mutable access to its contents. This is because otherwise <code>Rc&lt;&gt;</code> would allow us to circumvent&rsquo;s Rust safety rule that a value may either be referenced by a single mutable reference or any number of shared references at the same time, making it possible to write code such as:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">let</span> numbers1 <span style="color:#f92672">=</span> Rc::new(vec![<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>]);
+<span style="color:#66d9ef">let</span> numbers2 <span style="color:#f92672">=</span> numbers1.clone();
+
+<span style="color:#66d9ef">for</span> item <span style="color:#66d9ef">in</span> numbers1.iter() {
+    numbers2.push(item <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+    println!(<span style="color:#e6db74">&#34;Got {item}&#34;</span>);
+}
+</code></pre></div><p>Here the vector is borrowed immutably for the scope of the <code>for</code> due to <code>numbers1.iter()</code> (which yields items by reference), but then also borrowed mutably by the call to <code>push()</code>. This is unsafe because pushing to a vector might force a reallocation, leaving the <code>item</code> reference to dangle.</p>
+<p>The Rust solution to this is to defer this kind of safety checking to runtime by using a mutable container such as <a href="https://doc.rust-lang.org/std/cell/index.html"><code>RefCell&lt;&gt;</code></a>. <code>RefCell&lt;&gt;</code> enforces the borrow checker&rsquo;s rules <em>during runtime</em>, at the cost of incurring a performance overhead. However, this allows our code to compile and run correctly:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> std::cell::RefCell;
+<span style="color:#66d9ef">use</span> std::rc::Rc;
+
+<span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">impl</span> Orderbook {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">insert</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span>(orderbook_ptr: <span style="color:#a6e22e">Rc</span><span style="color:#f92672">&lt;</span>RefCell<span style="color:#f92672">&lt;</span>Orderbook<span style="color:#f92672">&gt;&gt;</span>, order: <span style="color:#a6e22e">Order</span>) -&gt; Option<span style="color:#f92672">&lt;</span>OrderHandle<span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> orderbook <span style="color:#f92672">=</span> orderbook_ptr.borrow_mut();
+
+        <span style="color:#75715e">// ... as before ...
+</span><span style="color:#75715e"></span>
+        <span style="color:#66d9ef">let</span> order_handle <span style="color:#f92672">=</span> {
+            <span style="color:#66d9ef">let</span> captured_orderbook_ptr <span style="color:#f92672">=</span> orderbook_ptr.clone();
+            OrderHandle{
+                remove_fn: Box::new(<span style="color:#66d9ef">move</span> <span style="color:#f92672">||</span> {
+                    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> orderbook <span style="color:#f92672">=</span> captured_orderbook_ptr.borrow_mut();
+                    <span style="color:#66d9ef">let</span> same_side <span style="color:#f92672">=</span> orderbook.get_side::<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>();
+                    same_side.remove_entry(<span style="color:#f92672">&amp;</span>order_key);
+                }),
+            }
+        };
+        Some(order_handle)
+    }
+}
+</code></pre></div><p>Notice how <code>Orderbook::insert()</code> now takes <code>orderbook_ptr</code> instead of <code>&amp;mut self</code>, meaning that it can be no longer called as a method. This is necessary so that we can then clone the reference-counted pointer and capture that clone in the lambda expression.</p>
+<h2 id="unsafe-orderbookinsert-cing-it-up">Unsafe <code>Orderbook::insert()</code>: C++ing it up</h2>
+<p>Using <code>Rc&lt;RefCell&lt;&gt;&gt;</code> incurs a performance hit which we may not be willing to pay. Nor should we have to, as we can prove that our code would work, if only the pesky borrow checker could have some chill.</p>
+<p>What we can do then is to acknowledge that the compiler is not going to be able to prove that our code is safe, and \ take matters into our own hands by using <code>unsafe</code>. Specifically, we are going to store <code>same_side</code> not as a reference, but as a raw pointer, which has no lifetime restrictions as far as the borrow checker is concerned:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">let</span> order_handle <span style="color:#f92672">=</span> {
+    <span style="color:#66d9ef">let</span> same_side_ptr <span style="color:#f92672">=</span> same_side <span style="color:#66d9ef">as</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span>;
+
+    OrderHandle{
+        remove_fn: Box::new(<span style="color:#66d9ef">move</span> <span style="color:#f92672">||</span> {
+            <span style="color:#66d9ef">let</span> same_side <span style="color:#f92672">=</span> <span style="color:#66d9ef">unsafe</span> { <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> <span style="color:#f92672">*</span>same_side_ptr };
+            same_side.remove_entry(<span style="color:#f92672">&amp;</span>order_key);
+        }),
+    }
+};
+</code></pre></div><p>This will work if we remember to keep our <code>Orderbook</code> objects boxed in the <code>HashMap</code> so that a rehashing does not move them:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Exchange</span> {
+    order_books: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span>String, Box<span style="color:#f92672">&lt;</span>Orderbook<span style="color:#f92672">&gt;&gt;</span>,
+    order_handles: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u32</span>, OrderHandle<span style="color:#f92672">&gt;</span>,
+}
+</code></pre></div><p>It is worth keeping in mind though that writing unsafe Rust is a bit more difficult and less convenient than writing C++, as Rust has more restrictions and forces code to be more explicit, to the extent that unsafe code ends up usually being a lot more verbose than the C or C++ equivalent would be. A good example this can be seen in <a href="https://cliffle.com/p/dangerust/">Learn Rust the Dangerous Way</a>.</p>
+<p>Our <code>unsafe</code> version of <code>Orderbook::insert()</code> will work only so long as the code outside <code>Orderbook</code> ensures that it uses the class correctly by ensuring that the <code>Orderbook</code> reference stays valid at least as long as there may be any <code>OrderHandle</code>s using it. By using <code>unsafe</code>, the safety of our code can no longer be reasoned about locally, i.e. just by looking at individual pieces of code, but we must do so globally, by considering our entire codebase as a whole. Safety is only maintained if every use of <code>Orderbook</code> is correct. For C++ programmers, this is just business as usual, but for sane people, this is very undesirable. Sometimes though, such as when performance is critical, this trade-off is worth it, and that is why Rust has <code>unsafe</code>.</p>
+<h2 id="wrapping-up-implementing-exchange">Wrapping up: implementing <code>Exchange</code></h2>
+<p>All that is left is implementing <code>Exchange::insert()</code> and <code>cancel()</code> (using the safe implementation with <code>Rc&lt;RefCell&lt;&gt;&gt;</code>):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span> Exchange {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>() -&gt; <span style="color:#a6e22e">Exchange</span> {
+        Exchange {
+            order_books: <span style="color:#a6e22e">HashMap</span>::new(),
+            order_handles: <span style="color:#a6e22e">HashMap</span>::new(),
+        }
+    }
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">insert</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, symbol: String, order: <span style="color:#a6e22e">Order</span>) {
+        <span style="color:#66d9ef">let</span> order_id <span style="color:#f92672">=</span> order.id;
+        <span style="color:#66d9ef">let</span> orderbook_ptr <span style="color:#f92672">=</span> self
+            .order_books
+            .entry(symbol)
+            .or_insert_with(<span style="color:#f92672">||</span> Rc::new(RefCell::new(Orderbook::new())))
+            .clone();
+
+        <span style="color:#66d9ef">let</span> new_handle <span style="color:#f92672">=</span> <span style="color:#66d9ef">match</span> order.side {
+            Side::Bid <span style="color:#f92672">=&gt;</span> Orderbook::insert::<span style="color:#f92672">&lt;</span>Bid<span style="color:#f92672">&gt;</span>(orderbook_ptr, order),
+            Side::Ask <span style="color:#f92672">=&gt;</span> Orderbook::insert::<span style="color:#f92672">&lt;</span>Ask<span style="color:#f92672">&gt;</span>(orderbook_ptr, order),
+        };
+
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(new_handle) <span style="color:#f92672">=</span> new_handle {
+            self.order_handles.insert(order_id, new_handle);
+        }
+    }
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cancel</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, order_id: <span style="color:#66d9ef">u32</span>) {
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(order_handle) <span style="color:#f92672">=</span> self.order_handles.remove(<span style="color:#f92672">&amp;</span>order_id) {
+            (order_handle.remove_fn)();
+        }
+    }
+}
+</code></pre></div><p>We can improve the API a bit using the <a href="https://www.lurklurk.org/effective-rust/newtype.html">newtype pattern</a>, creating a &ldquo;strong type alias&rdquo; for symbols and order IDs:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[derive(Hash, PartialEq, Eq, Debug, Clone)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Symbol</span>(String);
+
+<span style="color:#75715e">#[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderId</span>(<span style="color:#66d9ef">u32</span>);
+
+<span style="color:#75715e">#[derive(Debug, Clone)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Order</span> {
+    seq_num: <span style="color:#66d9ef">u64</span>,
+    id: <span style="color:#a6e22e">OrderId</span>,
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Exchange</span> {
+    order_books: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span>Symbol, Rc<span style="color:#f92672">&lt;</span>RefCell<span style="color:#f92672">&lt;</span>Orderbook<span style="color:#f92672">&gt;&gt;&gt;</span>,
+    order_handles: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span>OrderId, OrderHandle<span style="color:#f92672">&gt;</span>,
+}
+
+<span style="color:#66d9ef">impl</span> Exchange {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">insert</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, symbol: <span style="color:#a6e22e">Symbol</span>, order: <span style="color:#a6e22e">Order</span>) { <span style="color:#75715e">/* ... */</span> }
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cancel</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, order_id: <span style="color:#a6e22e">OrderId</span>) { <span style="color:#75715e">/* ... */</span> }
+}
+</code></pre></div><h2 id="further-reading">Further reading</h2>
+<p>Thank you for following along with me in this mini-series! I hope you have enjoyed it, and have gotten a bit more familiar with Rust along the way.</p>
+<p>If you would like to learn more, here are a few resources and articles I have found particularly useful or interesting:</p>
+<ul>
+<li><a href="https://manishearth.github.io/blog/2015/05/27/wrapper-types-in-rust-choosing-your-guarantees/">Wrapper Types in Rust: Choosing Your Guarantees</a>: explaining the vocabulary types of Rust, like references, pointers, <code>Box</code>, <code>Rc</code>, <code>Cell</code>, etc.</li>
+<li><a href="https://manishearth.github.io/blog/2015/05/17/the-problem-with-shared-mutability/">The Problem With Single-threaded Shared Mutability</a>: why is Rust so restrictive about references and mutability?</li>
+<li><a href="https://doc.rust-lang.org/rust-by-example/">Rust by Example</a>: learn Rust one code example at a time</li>
+<li><a href="https://github.com/rust-lang/rustlings">Rustlings</a>: small exercises to get you used to reading and writing Rust code</li>
+<li><a href="https://cliffle.com/p/dangerust/">Learn Rust the Dangerous Way</a>: converting a small C program (nbody) into Rust, <code>unsafe</code> first</li>
+</ul>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/03/07/configuration-knobs-considered.html">Configuration knobs considered harmful (Abseil blog)</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/03/07/configuration-knobs-considered.html" class="u-url"><time class="dt-published" datetime="2024-03-07 01:23:58 &#43;0200">Mar 7, 2024</time></a>
+
+		<div class="e-content">
+			 <p>I found the recent Abseil article <a href="https://abseil.io/fast/52">Performance Tip of the Week #52: Configuration knobs considered harmful</a> to be insightful. Most people, developers included, would generally prefer more flexibility and configurability over less, but as the article points out, configuration options (flags) carry risks and complexities that are not evident.</p>
+<p>Part of the problem is that configuration options often can only be set by the authors correctly, because they are the ones who understand all of the necessary context and who are aware of the subtle details. More configuration choices also increases the complexity of the application, making it more difficult to maintain and improve. Furthermore, as software evolves, configurations that were desirable in the past might become undesirable (e.g. due to some optimization becoming a reality) without anyone noticing.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/03/04/graphs-are-hard.html">Graphs are hard</a></h1>
 		
 
@@ -45,7 +356,18 @@
 </ul>
 <p>This explains why languages don’t support graphs in their standard libraries: too many design decisions, too many tradeoffs, and too much maintenance burden. It explains why programmers might avoid third party graph libraries, because they’re either too limited or too slow. And it explains why programmers might not want to think about things in terms of graphs except in extreme circumstances: it’s just too hard to work with them.</p>
 </blockquote>
-<p>For what it&rsquo;s worth, this matches my experience: graphs are really nice and elegant in theory, but in practice they are too hard and too messy.</p>
+<p>For what it&rsquo;s worth, this matches my experience: graphs are really nice and elegant in theory, but in practice they are too hard and too messy. As <a href="https://news.ycombinator.com/item?id=39594337">one commenter on HN put it</a>:</p>
+<blockquote>
+<p>Ya, the central obstacle is that:</p>
+<ol>
+<li>
+<p>for simple and small graph problems, a simple vector-of-vectors adjacency list is easy enough to code up.</p>
+</li>
+<li>
+<p>For complex and huge graph problems, the only way to get performant solutions is to tailor the graph implementation to the specific details of the problem to be solved.</p>
+</li>
+</ol>
+</blockquote>
 
 		</div>
 	  </div>
