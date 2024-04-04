@@ -24,6 +24,49 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/04/amazons-hightech-stores.html">Amazon&#39;s high-tech stores were, in fact, low tech, and shut down</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/04/amazons-hightech-stores.html" class="u-url"><time class="dt-published" datetime="2024-04-04 02:25:29 &#43;0200">Apr 4, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://daringfireball.net/linked/2024/04/02/amazon-just-walk-out">Amazon Ditches ‘Just Walk Out’ Checkouts at Its Grocery Stores</a>, because, as it turns out, it wasn&rsquo;t actually all that technological:</p>
+<blockquote>
+<p>Though it seemed completely automated, Just Walk Out relied on more than 1,000 people in India watching and labeling videos to ensure accurate checkouts. The cashiers were simply moved off-site, and they watched you as you shopped.</p>
+</blockquote>
+<p>Hah! I have to admit, I really should have seen that coming. And I&rsquo;m not the only one that feels this way:</p>
+<blockquote>
+<p>Need to start keeping a list of all the times some big supposed display of bleeding edge technology turns out to just be A Guy.</p>
+</blockquote>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/03/11/humans-need-not.html">Humans Need Not Apply</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/03/11/humans-need-not.html" class="u-url"><time class="dt-published" datetime="2024-03-11 01:51:00 &#43;0200">Mar 11, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://www.youtube.com/watch?v=7Pq-S557XQU">Humans Need Not Apply</a> was a YouTube video by CGP Gray published in 2014. It talks about how technological advancements, especially making computers smarter and more able to think and make decisions, will increasingly make humans unnecessary. It was made in time where AI research was still in its infancy (compared to today), but it has never been more relevant:</p>
+<style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style>
+<div class='embed-container'><iframe src='https://www.youtube.com/embed/7Pq-S557XQU' frameborder='0' allowfullscreen></iframe></div>
+<hr>
+<p><a href="https://marshallbrain.com/manna">Manna – Two Views of Humanity’s Future</a> is a short story by Marshall Brain that explores a world where AI has taken over everything. This was written no later than 2012, though I have been unable to find out exactly when. From the story description:</p>
+<blockquote>
+<p>With half of the jobs eliminated by robots, what happens to all the people who are out of work? The book Manna explores the possibilities and shows two contrasting outcomes, one filled with great hope and the other filled with misery.</p>
+<p>Join Marshall Brain, founder of HowStuffWorks.com, for a skillful step-by-step walk through of the robotic transition, the collapse of the human job market that results, and a surprising look at humanity’s future in a post-robotic world.</p>
+<p>Then consider our options. Which vision of the future will society choose to follow?</p>
+</blockquote>
+<p>These are just two examples of how a great many very smart people have predicted a future where there is less and less of a need for humans. The problems are known, as are several ideas on how this possible might be tackled, for example universal basic income (UBI). Unfortunately, nothing has changed as of yet, and we are very much on track for a future that makes <a href="https://www.imdb.com/title/tt2085059/">Black Mirror</a> look like a Disney cartoon.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/03/11/implementing-order-books.html">Implementing order books in C&#43;&#43; and Rust - part 3/3</a></h1>
 		
 
@@ -385,28 +428,28 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 <h2 id="defining-order-and-orderkey">Defining <code>Order</code> and <code>OrderKey</code></h2>
 <p>Let&rsquo;s start by defining the same <code>Order</code> and <code>OrderKey</code> types:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Side</span> {
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Side</span> {
     Buy,
     Sell,
 }
 
 <span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
-    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
-    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    price: <span style="color:#66d9ef">f64</span>,
+    seq_num: <span style="color:#66d9ef">u64</span>,
 }
 
 <span style="color:#75715e">#[derive(Debug, Clone)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Order</span> {
-    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
-    <span style="color:#66d9ef">pub</span> id: <span style="color:#66d9ef">u32</span>,
-    <span style="color:#66d9ef">pub</span> side: <span style="color:#a6e22e">Side</span>,
-    <span style="color:#66d9ef">pub</span> volume: <span style="color:#66d9ef">i32</span>,
-    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Order</span> {
+    seq_num: <span style="color:#66d9ef">u64</span>,
+    id: <span style="color:#66d9ef">u32</span>,
+    side: <span style="color:#a6e22e">Side</span>,
+    volume: <span style="color:#66d9ef">i32</span>,
+    price: <span style="color:#66d9ef">f64</span>,
 }
 
 <span style="color:#66d9ef">impl</span> Order {
-    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">key</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#a6e22e">OrderKey</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">key</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#a6e22e">OrderKey</span> {
         OrderKey {
             price: <span style="color:#a6e22e">self</span>.price,
             seq_num: <span style="color:#a6e22e">self</span>.seq_num,
@@ -416,9 +459,9 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 </code></pre></div><p>So far here, there shouldn&rsquo;t be anything too surprising, except perhaps the <code>#[derive(...)]</code> syntax, which can be used to auto-generate implementations of traits. Traits are a sort of a mix between C++ concepts and abstract classes (interfaces), and I&rsquo;m told most similar to Haskell&rsquo;s meta-classes. For example, implementing the <code>Eq</code> trait requires that you implement equality comparison as a function, and it, well, makes values of this type equality-comparable: the equivalent of defining <code>operator==</code> in C++. <code>derive()</code>ing <code>Eq</code> then is the Rust equivalent to writing <code>bool operator==(...) = default;</code> in C++.</p>
 <p>The code above actually would fail to compile due to attempting to derive <code>Eq</code> for <code>OrderKey</code>. The hint as to why lies in the existence of <a href="https://doc.rust-lang.org/std/cmp/trait.PartialEq.html"><code>PartialEq</code></a>: floats do not have a total equivalence relation, namely because <code>NaN</code>s violate the requirement of reflexivity: <code>x != x</code> if <code>x = NaN</code>. Therefore, floats (<code>f32</code>, <code>f64</code>) cannot be <code>Eq</code> in Rust, only <code>PartialEq</code>. Our <code>OrderKey</code> structure contains a <code>price: f64</code> field, which makes it impossible to derive <code>Eq</code> for. If we have a guarantee though that price cannot possible be <code>NaN</code>, then we can tell the compiler that it&rsquo;s all good by implementing <code>Eq</code> manually:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
-    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
-    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    price: <span style="color:#66d9ef">f64</span>,
+    seq_num: <span style="color:#66d9ef">u64</span>,
 }
 
 <span style="color:#75715e">// we check the price for NaN before we can get here
@@ -433,13 +476,13 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 <p>The closest Rust equivalent of the C++ <code>std::map&lt;&gt;</code> is <a href="https://doc.rust-lang.org/std/collections/struct.BTreeMap.html"><code>std::collections::BTreeMap&lt;&gt;</code></a>, but there&rsquo;s one big difference: while <code>std::map</code> is typically implemented as a red-black tree, <code>BTreeMap</code> is implemented as a (you guessed it) <a href="https://en.wikipedia.org/wiki/B-tree">B-Tree</a> (which is not the same as a binary search tree!) that stores multiple elements in one node to improve data locality. I expect, though I haven&rsquo;t benchmarked it, that Rust&rsquo;s <code>BTreeMap</code> would generally significantly outperform C++&rsquo;s <code>std::map</code>, while providing essentially the same functionality. Nice!</p>
 <p>In <code>std::map</code> we could pass in a comparator type to be used as the third template argument, but Rust&rsquo;s <code>BTreeMap</code> is more opinionated than that: it requires that our key type implement <code>Ord</code>, the trait for total ordering. This is certainly possible to do, but requires that we put the order&rsquo;s side into <code>OrderKey</code> as well, otherwise we cannot tell whether a lower of higher price is better:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> core::cmp::Ordering;
-<span style="color:#f92672">..</span>.
-
+<span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
 <span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
-    <span style="color:#66d9ef">pub</span> side: <span style="color:#a6e22e">Side</span>,
-    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>, <span style="color:#75715e">// assume non-NaN
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    side: <span style="color:#a6e22e">Side</span>,
+    price: <span style="color:#66d9ef">f64</span>, <span style="color:#75715e">// assume non-NaN
+</span><span style="color:#75715e"></span>    seq_num: <span style="color:#66d9ef">u64</span>,
 }
 
 <span style="color:#66d9ef">impl</span> Eq <span style="color:#66d9ef">for</span> OrderKey {}
@@ -482,18 +525,19 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 </span></code></pre></div><p>Admittedly, this is <em>terrible</em> code, but it is perfectly legal, due to the legacy of C <code>enum</code>s being just named integer literals. This is not possible in safe Rust, and triggers undefined behaviour in unsafe Rust: one of the many cases where Rust is stricter than C++, but as a result can optimize better.</p>
 <p>Okay, so now that <code>OrderKey</code> is <code>Ord</code>, we can use it as a key in <code>BTreeMap</code>. Unfortunately, we ended up with much less efficient code than the C++ version, due to having to store the order side in <code>OrderKey</code>, and branching on side in <code>cmp()</code>. One way to deal with this situation is to define wrapper types around <code>OrderKey</code> and implement <code>Ord</code> differently for them. For example:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> core::cmp::Ordering;
-<span style="color:#f92672">..</span>.
-
+<span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
 <span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
-    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>,
-    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
+    price: <span style="color:#66d9ef">f64</span>,
+    seq_num: <span style="color:#66d9ef">u64</span>,
 }
 
 <span style="color:#66d9ef">impl</span> Eq <span style="color:#66d9ef">for</span> OrderKey {}
 
-<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">BidKey</span>(OrderKey);
+<span style="color:#75715e">// order key for buy orders
+</span><span style="color:#75715e"></span><span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">BidKey</span>(OrderKey);
 
 <span style="color:#66d9ef">impl</span> Ord <span style="color:#66d9ef">for</span> BidKey {
     <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">BidKey</span>) -&gt; <span style="color:#a6e22e">Ordering</span> {
@@ -513,8 +557,9 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
     }
 }
 
-<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">AskKey</span>(OrderKey);
+<span style="color:#75715e">// order key for sell orders
+</span><span style="color:#75715e"></span><span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">AskKey</span>(OrderKey);
 
 <span style="color:#66d9ef">impl</span> Ord <span style="color:#66d9ef">for</span> AskKey {
     <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">cmp</span>(<span style="color:#f92672">&amp;</span>self, other: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">AskKey</span>) -&gt; <span style="color:#a6e22e">Ordering</span> {
@@ -540,17 +585,19 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> core::cmp::Ordering;
 <span style="color:#66d9ef">use</span> std::marker::PhantomData;
 
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> OrderbookSide: Eq {
+<span style="color:#66d9ef">trait</span> OrderbookSide: Eq {
     <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Opposite</span>: <span style="color:#a6e22e">OrderbookSide</span>;
 
     <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">is_price_better_than</span>(left: <span style="color:#66d9ef">f64</span>, right: <span style="color:#66d9ef">f64</span>) -&gt; <span style="color:#66d9ef">bool</span>;
 }
 
-<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bid</span>;
+<span style="color:#75715e">// the buyer side
+</span><span style="color:#75715e"></span><span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bid</span>;
 
-<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Ask</span>;
+<span style="color:#75715e">// the seller side
+</span><span style="color:#75715e"></span><span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Ask</span>;
 
 <span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Bid {
     <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Opposite</span> <span style="color:#f92672">=</span> Ask;
@@ -569,9 +616,9 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 }
 
 <span style="color:#75715e">#[derive(Debug, PartialEq, Clone, Copy)]</span>
-<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span> {
-    <span style="color:#66d9ef">pub</span> price: <span style="color:#66d9ef">f64</span>, <span style="color:#75715e">// assume not-NaN
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">pub</span> seq_num: <span style="color:#66d9ef">u64</span>,
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span><span style="color:#f92672">&lt;</span>Side: <span style="color:#a6e22e">OrderbookSide</span><span style="color:#f92672">&gt;</span> {
+    price: <span style="color:#66d9ef">f64</span>, <span style="color:#75715e">// assume not-NaN
+</span><span style="color:#75715e"></span>    seq_num: <span style="color:#66d9ef">u64</span>,
     _side: <span style="color:#a6e22e">PhantomData</span><span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">&gt;</span>,
 }
 
@@ -597,7 +644,7 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 </code></pre></div><p>One peculiar you thing you might notice is the field <code>_side: PhantomData&lt;Side&gt;</code> in <code>OrderKey</code>. <a href="https://doc.rust-lang.org/rust-by-example/generics/phantom.html"><code>PhantomData</code></a> here is necessary, otherwise rustc will not accept our program, due to the unused <code>Side</code> type parameter in the struct definition. Fortunately, it does not pose a run-time cost: Rust supports zero-size types (such as our <code>Bid</code> and our <code>Ask</code> marker types) and so <code>PhantomData&lt;T&gt;</code> does not actually increase the size of <code>OrderKey</code>.</p>
 <p>The <code>&lt;Side: OrderbookSide&gt;</code> syntax represents a <em>trait bound</em>: requirements on what traits the type parameter must implement. Rust would not otherwise allow the use of associated functions and types (such as <code>is_price_better_than</code> and <code>Opposite</code>) on <code>Side</code>, unlike in C++. Rust traits act as C++ template specializations, concepts, and also interfaces (abstract base classes).</p>
 <p>Even this way, our Rust code is much longer and more verbose than the equivalent C++ one, mainly due to <code>BTreeMap</code> requiring the key to be <code>Ord</code>, which in turn means that it also needs to be <code>PartialOrd</code>, <code>PartialEq</code>, and <code>Eq</code>. We did not have to bother with any of this in C++, as <code>std::map</code> just lets us pass in a comparator as the third template argument. I don&rsquo;t see any real reason why Rust is less ergonomic here, so I&rsquo;m going to chalk it up to a difference in culture and/or philosophy. I <em>can</em> see a sort-of theoretical purity to forcing the same ordering and equality implementations to apply in all cases, but I&rsquo;m not a fan of the imposed cost.</p>
-<p>In the next article of the series, we will be implementing the <code>Orderbook</code> type and build support for inserting and cancelling orders.</p>
+<p>In the <a href="https://blog.gaborkozar.me/2024/03/11/implementing-order-books.html">final part of the series</a>, we will implement the <code>Orderbook</code> and <code>Exchange</code> structures and build support for inserting and cancelling orders.</p>
 
 		</div>
 	  </div>
@@ -639,11 +686,12 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 		<a href="https://blog.gaborkozar.me/2024/02/17/implementing-order-books.html" class="u-url"><time class="dt-published" datetime="2024-02-17 04:29:16 &#43;0200">Feb 17, 2024</time></a>
 
 		<div class="e-content">
-			 <p>A fairly standard programming problem in the world of trading is building an order book. In this article, I will be showing one particular interesting aspect of this problem, and how to solve it in C++. In the next part, we will be trying to implement the same solution in Rust, which I&rsquo;ve been learning.</p>
+			 <p>A fairly standard programming problem in the world of trading is building an order book. In this article, I will be showing one particular interesting aspect of this problem, and how to solve it in C++. In the next two parts, we will be trying to implement the same solution in Rust.</p>
+<p>This is meant to be comprehensive tutorial of Rust, but I will do my best to explain some of the most interesting or unusual parts. The series will try to approach the work of programming in Rust in much the same way as I expect another C++ developer would experience it. Therefore, some C++ knowledge is taken for granted.</p>
 <h2 id="brief-introduction-orders-and-order-books">Brief introduction: orders and order books</h2>
 <p>An order represents willingness to buy or sell something: for example, <code>Buy AAPL 25 @ 137.85</code> would represent a buy order on the Apple stock (identified by the symbol <code>AAPL</code>) for a volume of 25 (i.e. 25 shares) at the price of (up to) 137.85. An exchange (also called stock exchange or market) maintains books with all active orders in them, allowing potential buyers and sellers to trade with each other.</p>
 <p>Order books tend to be split by side, and the orders are sorted so that an order with higher priority comes before an order with lower priority. Priority is usually determined by two things: the price first and foremost, and time second (to act as an arbitrator in the case of multiple orders with the same price). For buy orders, a higher price is better (since it is more likely to lead to a trade), and therefore has priority; for sell orders, it&rsquo;s the opposite.</p>
-<h2 id="defining-order-and-orderbook">Defining <code>Order</code> and <code>OrderBook</code></h2>
+<h2 id="defining-order-and-orderbook">Defining <code>Order</code> and <code>Orderbook</code></h2>
 <p>Let&rsquo;s start with some simple C++ code to define the types we need to represent an order book:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// Used for sorting orders
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderKey</span> {
@@ -692,7 +740,7 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
     }
 };
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderBook</span> {
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Orderbook</span> {
     std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span>OrderKey, Order, CompareBids<span style="color:#f92672">&gt;</span> bids;
     std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span>OrderKey, Order, CompareAsks<span style="color:#f92672">&gt;</span> asks;
 };
@@ -714,27 +762,35 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 <span style="color:#66d9ef">using</span> Symbol <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>string;
 
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Exchange</span> {
-    std<span style="color:#f92672">::</span>unordered_map<span style="color:#f92672">&lt;</span>Symbol, OrderBook<span style="color:#f92672">&gt;</span> order_book_by_symbol;
+    std<span style="color:#f92672">::</span>unordered_map<span style="color:#f92672">&lt;</span>Symbol, Orderbook<span style="color:#f92672">&gt;</span> order_book_by_symbol;
     std<span style="color:#f92672">::</span>unordered_map<span style="color:#f92672">&lt;</span>OrderId, OrderHandle<span style="color:#f92672">&gt;</span> order_handle_by_id;
-    ...
 
-    <span style="color:#66d9ef">void</span> insert(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span>, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span>);
-    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">cancel</span>(OrderId);
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">insert</span>(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span>, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span>);
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">cancel</span>(OrderId);
 };
 </code></pre></div><p>Inserting an order means inserting it into the appropriate order book&rsquo;s appropriate side map (<code>bids</code> or <code>asks</code>), as well as registering it in <code>order_handle_by_id</code>. We do not yet know what <code>OrderHandle</code> will have to look like for <code>Exchange::cancel()</code> to be as efficient as possible, so we left that empty for now.</p>
 <p>Let&rsquo;s implement <code>Exchange::insert()</code> next:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> Exchange<span style="color:#f92672">::</span>insert(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span> symbol, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span> order) {
     <span style="color:#75715e">// look up the order book if it already exists, otherwise insert it
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderBookIt, orderBookInserted] <span style="color:#f92672">=</span> order_book_by_symbol.try_emplace(symbol);
-    OrderBook<span style="color:#f92672">&amp;</span> orderBook <span style="color:#f92672">=</span> orderBookIt<span style="color:#f92672">-&gt;</span>second;
+    Orderbook<span style="color:#f92672">&amp;</span> orderBook <span style="color:#f92672">=</span> orderBookIt<span style="color:#f92672">-&gt;</span>second;
 
-    OrderHandle newHandle;
+    <span style="color:#75715e">// ... logic for matching this order against orders on the opposite side to see if we have any trades ...
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">if</span> (order.volume <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>) {
+        <span style="color:#75715e">// the new order is fully traded, so nothing is inserted into the orderbook
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span>;
+    }
+
+    <span style="color:#75715e">// store the new order and a handle to it
+</span><span style="color:#75715e"></span>    OrderHandle newHandle;
     <span style="color:#66d9ef">if</span> (order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Bid) {
         <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderIt, orderInserted] <span style="color:#f92672">=</span> orderBook.bids.try_emplace(order.key(), order);
         assert(orderInserted <span style="color:#f92672">&amp;&amp;</span> <span style="color:#e6db74">&#34;Duplicate order key&#34;</span>);
 
         <span style="color:#75715e">// TODO: fill out `newHandle`
-</span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">else</span> <span style="color:#a6e22e">if</span> (order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Ask) {
+</span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">else</span> {
+        assert(order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Ask);
         <span style="color:#75715e">// similarly...
 </span><span style="color:#75715e"></span>    }
 
@@ -745,49 +801,123 @@ help: consider constraining the associated type `&lt;Side as OrderbookSide&gt;::
 <p>One option would be to have <code>OrderHandle</code> store all the information needed to locate the order: the containing order book, order side, and order key. However, this would make cancellation quite slow, as it would require 3 map lookups:</p>
 <ol>
 <li><code>order_handle_by_id</code> to find the <code>OrderHandle</code>,</li>
-<li><code>order_book_by_symbol</code> as we cannot store an <code>OrderBook*</code> directly unless we can guarantee that <code>order_book_by_symbol</code> will never rehash,</li>
-<li><code>OrderBook::bids</code> or <code>OrderBook::asks</code>.</li>
+<li><code>order_book_by_symbol</code> as we cannot store an <code>Orderbook*</code> directly unless we can guarantee that <code>order_book_by_symbol</code> will never rehash,</li>
+<li><code>Orderbook::bids</code> or <code>Orderbook::asks</code>.</li>
 </ol>
 <p>Looking at the order insertion code again, the insight for how to optimize this comes by realizing that at the end of order insertion, we have everything we need to effectively remove the order. It is just two things: a reference to the map that contains the order, and iterator referencing the order in the map. Since <code>std::map</code> guarantees address stability, we can rely on <code>std::map&lt;&gt;::iterator</code> to never be invalidated unless the corresponding element is removed, meaning that it is save to store.</p>
 <p>Unfortunately, we cannot have <code>OrderHandle</code> store these directly, because both the map type and the iterator type depend on the comparator used, which will be different between bids and asks. We would need to template <code>OrderHandle</code> on our comparator, which would prevent our bid and ask order handles to be stored together. That doesn&rsquo;t work.</p>
 <p>Type erasure to the rescue! We can encapsulate the order removal into a lambda expression at the end of order insertion, and save that in an <code>std::function</code> which can then go on to live inside our <code>OrderHandle</code>:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderHandle</span> {
-    std<span style="color:#f92672">::</span>function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">void</span>()<span style="color:#f92672">&gt;</span> remove <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+    std<span style="color:#f92672">::</span>function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">void</span>()<span style="color:#f92672">&gt;</span> remove_fn <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
 };
 
 <span style="color:#66d9ef">void</span> Exchange<span style="color:#f92672">::</span>insert(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span> symbol, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span> order) {
-    ...
-    OrderHandle newHandle;
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>    OrderHandle newHandle;
 
     <span style="color:#66d9ef">if</span> (order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Bid) {
         <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderIt, orderInserted] <span style="color:#f92672">=</span> orderbook.bids.try_emplace(order.key(), order);
         assert(orderInserted <span style="color:#f92672">&amp;&amp;</span> <span style="color:#e6db74">&#34;Duplicate order key&#34;</span>);
 
-        newHandle.remove <span style="color:#f92672">=</span> [<span style="color:#f92672">&amp;</span>orderbook_side<span style="color:#f92672">=</span>orderbook.bids, orderIt]() {
-            orderbook_side.erase(orderIt);
+        newHandle.remove_fn <span style="color:#f92672">=</span> [<span style="color:#f92672">&amp;</span>orderbookSide<span style="color:#f92672">=</span>orderbook.bids, orderIt]() {
+            orderbookSide.erase(orderIt);
+        };
+    } <span style="color:#66d9ef">else</span> {
+        assert(order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Ask);
+
+        <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderIt, orderInserted] <span style="color:#f92672">=</span> orderbook.asks.try_emplace(order.key(), order);
+        assert(orderInserted <span style="color:#f92672">&amp;&amp;</span> <span style="color:#e6db74">&#34;Duplicate order key&#34;</span>);
+
+        newHandle.remove_fn <span style="color:#f92672">=</span> [<span style="color:#f92672">&amp;</span>orderbookSide<span style="color:#f92672">=</span>orderbook.asks, orderIt]() {
+            orderbookSide.erase(orderIt);
         };
     }
     ...
 }
 
-<span style="color:#66d9ef">bool</span> Exchange<span style="color:#f92672">::</span>cancel(OrderId orderId) {
+<span style="color:#66d9ef">void</span> Exchange<span style="color:#f92672">::</span>cancel(OrderId orderId) {
     <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> orderHandleIt <span style="color:#f92672">=</span> order_handle_by_id.find(orderId);
     <span style="color:#66d9ef">if</span> (orderHandleIt <span style="color:#f92672">==</span> order_handle_by_id.end()) {
-        <span style="color:#66d9ef">return</span> false; <span style="color:#75715e">// no such order
+        <span style="color:#66d9ef">return</span>; <span style="color:#75715e">// no such order
 </span><span style="color:#75715e"></span>    }
     <span style="color:#66d9ef">const</span> OrderHandle<span style="color:#f92672">&amp;</span> orderHandle <span style="color:#f92672">=</span> orderHandleIt<span style="color:#f92672">-&gt;</span>second;
 
-    orderHandle.remove();
+    orderHandle.remove_fn();
     order_handle_by_id.erase(orderHandleIt);
-    <span style="color:#66d9ef">return</span> true;
 }
 </code></pre></div><p>Neat! We managed to cut down our 3 map lookups needed to cancel an order to just 1!
 We do have to pay attention that if we ever remove an order from an order book, we also must remove it from <code>Exchange::order_handle_by_id</code>, otherwise the <code>OrderHandle</code> will dangle due to the invalidated iterator.</p>
-<p>Unfortunately, one bug has managed to sneak in, of the kind that C++ is notorious for: the reference to <code>orderbook.bids</code> (or <code>orderbook.asks</code>) is only valid so long as the <code>OrderBook</code> object stays in place, but as I&rsquo;ve indicated before, the <code>std::unordered_map</code> containing the <code>OrderBook</code> objects may rehash, which involves relocating all of it elements.</p>
+<p>Unfortunately, one bug has managed to sneak in, of the kind that C++ is notorious for: the reference to <code>orderbook.bids</code> (or <code>orderbook.asks</code>) is only valid so long as the <code>Orderbook</code> object stays in place; but as I&rsquo;ve indicated before, the <code>std::unordered_map</code> containing the <code>Orderbook</code> objects may rehash, which involves relocating all of it elements.</p>
 <p>This is sometimes possible to prevent by reserving enough capacity for the <code>std::unordered_map</code> upfront, but this is not always practical: often, it is difficult or impossible to give a reasonable upper bound on the maximum size the map will ever have, or if it is, the number is so huge that it is prohibitively expensive to actually do so.
-The easiest, and guaranteed way of solving this is to store the <code>OrderBook</code>s in an <code>std::unique_ptr</code>.</p>
+The easiest, and guaranteed way of solving this is to store the <code>Orderbook</code>s in an <code>std::unique_ptr</code>.</p>
 <p>This issue is very nasty, as during testing with just one or two symbols everything will appear to be working perfectly, but in production, when exposed to a large number of different symbols, the application will very quickly hit undefined behaviour, and crash in the best-case scenario. Ah, C++!</p>
-<p><a href="https://blog.gaborkozar.me/2024/02/26/implementing-order-books.html">In the next part of the series</a>, we will begin trying to implement the same things in Rust.</p>
+<h2 id="de-duplicating-the-code">De-duplicating the code</h2>
+<p>Finally, <code>Exchange::insert()</code> has some unfortunate code-duplication: two almost identical code paths for bids and asks. We can deduplicate this by adding some templates. Let&rsquo;s also take this opportunity and refactor the code a little bit, by moving the bulk of the order insertion logic into <code>Orderbook</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Orderbook</span> {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span>Side S<span style="color:#f92672">&gt;</span>
+    <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> get_side() {
+        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">constexpr</span> (S <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Bid) <span style="color:#66d9ef">return</span> bids;
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">constexpr</span> (S <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Ask) <span style="color:#66d9ef">return</span> asks;
+        <span style="color:#66d9ef">else</span> <span style="color:#a6e22e">__builtin_unreachable</span>();
+    }
+
+    <span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span>Side S<span style="color:#f92672">&gt;</span>
+    OrderHandle insert(Order order) {
+        <span style="color:#75715e">// ... logic for matching this order against orders on the opposite side to see if we have any trades ...
+</span><span style="color:#75715e"></span>
+        <span style="color:#66d9ef">if</span> (order.volume <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>) {
+            <span style="color:#75715e">// the new order is fully traded, so nothing is inserted into the orderbook
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> OrderHandle<span style="color:#f92672">::</span>Invalid;
+        }
+
+        <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> orderbookSide <span style="color:#f92672">=</span> get_side<span style="color:#f92672">&lt;</span>S<span style="color:#f92672">&gt;</span>();
+        <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderIt, orderInserted] <span style="color:#f92672">=</span> orderbookSide.try_emplace(order.key(), order);
+        assert(orderInserted <span style="color:#f92672">&amp;&amp;</span> <span style="color:#e6db74">&#34;Duplicate order key&#34;</span>);
+
+        <span style="color:#66d9ef">return</span> OrderHandle{
+            .remove_fn <span style="color:#f92672">=</span> [<span style="color:#f92672">&amp;</span>orderbookSide, orderIt]() {
+                orderbookSide.erase(orderIt);
+            },
+        };
+    }
+};
+
+...
+
+<span style="color:#66d9ef">void</span> Exchange<span style="color:#f92672">::</span>insert(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span> symbol, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span> order) {
+    <span style="color:#66d9ef">if</span> (order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Bid) {
+        insert_impl<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">::</span>Bid<span style="color:#f92672">&gt;</span>(symbol, order);
+    } <span style="color:#66d9ef">else</span> {
+        assert(order.side <span style="color:#f92672">==</span> Side<span style="color:#f92672">::</span>Ask);
+        insert_impl<span style="color:#f92672">&lt;</span>Side<span style="color:#f92672">::</span>Ask<span style="color:#f92672">&gt;</span>(symbol, order);
+    }
+}
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span>Side S<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">void</span> Exchange<span style="color:#f92672">::</span>insert_impl(<span style="color:#66d9ef">const</span> Symbol<span style="color:#f92672">&amp;</span> symbol, <span style="color:#66d9ef">const</span> Order<span style="color:#f92672">&amp;</span> order) {
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> [orderBookIt, orderBookInserted] <span style="color:#f92672">=</span> order_book_by_symbol.try_emplace(symbol);
+    Orderbook<span style="color:#f92672">&amp;</span> orderBook <span style="color:#f92672">=</span> orderBookIt<span style="color:#f92672">-&gt;</span>second;
+
+    OrderHandle newHandle <span style="color:#f92672">=</span> orderbook.insert<span style="color:#f92672">&lt;</span>S<span style="color:#f92672">&gt;</span>(order);
+    <span style="color:#66d9ef">if</span> (newHandle) {
+        order_handle_by_id.try_emplace(order.id, std<span style="color:#f92672">::</span>move(newHandle));
+    }
+}
+</code></pre></div><p>Note that we also need some API changes to <code>OrderHandle</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">OrderHandle</span> {
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> OrderHandle Invalid;
+
+    std<span style="color:#f92672">::</span>function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">void</span>()<span style="color:#f92672">&gt;</span> remove_fn <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+
+    <span style="color:#75715e">/*implicit*/</span> <span style="color:#66d9ef">operator</span> <span style="color:#a6e22e">bool</span>() <span style="color:#66d9ef">const</span> {
+        <span style="color:#66d9ef">return</span> remove_fn <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nullptr</span>;
+    }
+};
+<span style="color:#66d9ef">const</span> OrderHandle OrderHandle<span style="color:#f92672">::</span>Invalid{};
+</code></pre></div><p>Pretty nice. Yay for templates!</p>
+<p>In <a href="https://blog.gaborkozar.me/2024/02/26/implementing-order-books.html">the next part</a> we will begin implementing the same solution in Rust, and we will begin seeing where the two languages differ. <a href="https://blog.gaborkozar.me/2024/03/11/implementing-order-books.html">The final part</a> will see the bulk of the work being done, implementing order insertion and cancellation and the highlight of the show: fighting with the borrow checker.</p>
 
 		</div>
 	  </div>
