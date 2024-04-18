@@ -24,6 +24,103 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/18/weird-things-you.html">Weird things you can buy online</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/18/weird-things-you.html" class="u-url"><time class="dt-published" datetime="2024-04-18 14:51:22 &#43;0200">Apr 18, 2024</time></a>
+
+		<div class="e-content">
+			 <p>My favorite internet find of the day: <a href="https://www.hillelwayne.com/post/weird-things-you-can-buy/">Ten weird things you can buy online (and why you would)</a></p>
+<p>TLDR, you can buy online:</p>
+<ul>
+<li>books by the foot ($60 per foot in case you were wondering), for when you want to <em>look</em> intellectual by having filled bookshelves</li>
+<li>human milk (makes sense)</li>
+<li>private islands (of course!), some even go for as little as $500K</li>
+<li>uranium, though not weapons-grade uranium jesus christ thank god</li>
+<li>chlamydia, COVID-19, and other fun things, though it requires a license</li>
+<li>live bees, in case you want your own hive or something</li>
+<li>bedbugs! it is surprisingly expensive, 600 bedbugs cost you $750</li>
+<li>rollercoasters, because amusement parks need to get them from <em>somewhere</em></li>
+<li>oil tankers, cruise ships, research vessels &ndash; though shockingly no military vessels</li>
+</ul>
+<p>Because why not! Thank you internet!</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/15/arguing-against-accessor.html">Arguing against accessor functions</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/15/arguing-against-accessor.html" class="u-url"><time class="dt-published" datetime="2024-04-15 02:05:16 &#43;0200">Apr 15, 2024</time></a>
+
+		<div class="e-content">
+			 <p>One of the unpopular opinions I&rsquo;ve long held in programming is that accessor methods (getters and setters) are a terrible practice. Now <a href="https://www.youtube.com/watch?v=uHSLHvWFkto&amp;t=4386s">that I have found somebody who agrees with me</a> (timestamps 1:13:06 to 1:16:25) I am ready to write about this!</p>
+<p>This is what I mean (C++ code, but the same concept applies in any language):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">int</span> mData;
+
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">int</span> GetData() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> mData; }
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SetData</span>(<span style="color:#66d9ef">int</span> newData) { mData <span style="color:#f92672">=</span> newData; }
+};
+</code></pre></div><p>That&rsquo;s a lot of code that does very little, compared to simply making <code>mData</code> be <code>public</code>!</p>
+<p>You may also have had the misfortunate of seeing a C++-specific abomination of this, which defeats even the few possibly legitimate reasons why you may prefer accessor functions:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">int</span> mData;
+
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">int</span><span style="color:#f92672">&amp;</span> Data() { <span style="color:#66d9ef">return</span> mData; }
+};
+</code></pre></div><p>Why do I dislike accessor functions so much? In almost every case it is simply a lot of pointless code to write and maintain. Also, accessor functions are <em>functions</em>: what one day was a cheap field access, the next day can turn into an expensive lookup. (This can also be a feature, in very limited scenarios as I explain later.) Even worse, what was once a getter may end up modifying state somewhere along the line! (Admittedly this is mostly mitigated by marking the getter method as <code>const</code> in C++.)</p>
+<p>A common argument for having accessors is wanting to do validation in the setter function. In practice however I&rsquo;ve found that it&rsquo;s almost always better to do validation where you actually use the data. This is more flexible because it allows different parts of the code that may both operate on the same state to have different expectations against it, and it&rsquo;s also easier to maintain because the relevant parts of the code are closer together, and less likely to drift apart in meaning or intention. This is the same kind of thinking as: <a href="https://news.ycombinator.com/item?id=35053118">parse, don&rsquo;t validate</a>.</p>
+<h2 id="when-you-may-actually-want-them">When you may actually want them</h2>
+<p>There are some scenarios where accessor functions, though mostly just getters, do actually make sense. In all of these cases, exercise judgement on whether your reasons are really the right ones. In all cases, you should default to just exposing the field; the burden of proof lies with the side that argues for adding more code.</p>
+<h3 id="read-only-fields">Read-only fields</h3>
+<p>If you want to make a field read-only, then making it <code>private</code> and adding <em>only</em> a getter to it can be okay, but think carefully whether your reasons for wanting this are strong enough. In many cases, it turns out that there&rsquo;s no harm in exposing the field itself. One example is data that is just being exposed and will not be (directly) manipulated further, i.e. changing it would achieve nothing. If you are tempted to hide this behind a getter function, ask yourself: is that useful? (If you are worried about your colleagues writing code will be pointlessly changing the field, then you have an HR problem, not a technical one.)</p>
+<p>I cannot think of any legitimate reasons to have write-only fields. Even if you think nobody could possibly have to read the field&rsquo;s value, is it really worthwhile writing extra code to make that impossible?</p>
+<h3 id="hiding-representation">Hiding representation</h3>
+<p>Suppose that you have a field that is currently an <code>std::string</code>, but you expect that that may change. For example, you may want to actually store the entirety of data in-line in a fixed size array. Or you know that your string will never grow or shrink, and saving 8 bytes (by not having to store separately the end of data and the end of buffer) will allow your data to fit into the cache better and will significantly improve performance. Then it can be a good idea to put your field behind accessors that hide the field&rsquo;s actual type, e.g. by exposing <code>std::string_view</code>.</p>
+<p>Consider also whether the other types may use (in place of the <code>std::string</code> in this example) would be able to provide the same API. If so, then maybe users wouldn&rsquo;t even really notice the change in type, or if they do, it will be in the form of an extremely clear compiler error (expected type <code>foo</code> and got <code>bar</code>) that is trivially easy to find and fix.</p>
+<h3 id="hiding-location">Hiding location</h3>
+<p>In some scenarios, you may have a complex class, and you can choose whether to store some data as a field in the object itself, or somewhere else reachable from the object: e.g. through some pointer or reference, or even trivially derived from some other data. In this case, the field&rsquo;s existence may be an unstable implementation detail, and hiding the field behind accessors may be okay. For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    MoreData<span style="color:#f92672">*</span> m_indirectData;
+    <span style="color:#66d9ef">int</span> m_barLocalCache; <span style="color:#75715e">// this is just a performance optimization
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    std<span style="color:#f92672">::</span>string_view GetName() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> m_nameLocalCache; }
+};
+</code></pre></div><h3 id="maintaining-binary-compatibily">Maintaining binary compatibily</h3>
+<p>If you are building a library and you need to maintain binary compatibility, then you either have to use accessors, or be very sure that your fields never need to change position or size, nor will they ever move somewhere else.</p>
+<p>However, if you end up writing accessor functions in this case, you have to be careful: their body cannot live in a header file (that you publish along with your binaries), otherwise the compiler may inline the field access and it was all for naught. You must also keep in mind the performance impact: a field access is much cheaper than a function call that only does a field access. (Function calls may prevent optimizations because the compiler may no longer be able to prove that some piece of data accessed through any pointers or references were not overwritten sneakily by the function call.)</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/15/religious-psychology-in.html">Religious psychology in Dune</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/15/religious-psychology-in.html" class="u-url"><time class="dt-published" datetime="2024-04-15 00:25:48 &#43;0200">Apr 15, 2024</time></a>
+
+		<div class="e-content">
+			 <p>Have you seen <a href="https://www.imdb.com/title/tt15239678/">Dune: Part 2</a> yet? I think it&rsquo;s well worth watching in the cinema, it&rsquo;s an extraordinarily good adaptation of <a href="https://www.goodreads.com/book/show/44767458-dune">Frank Herbert&rsquo;s book</a>.
+If you have seen it, you have probably rolled your eyes on the Freemen&rsquo;s extreme religiosity and felt empathy for Chani as she spoke out against it. Nonetheless, if you are anything like me, I would expect that the religious behaviour displayed did not particularly surprise you. Disappoint? Oh yes. Surprise? Nah.</p>
+<p>I can really recommend the video essay How Dune Gets Religious Psychology Exactly Right on this topic:</p>
+<style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style>
+<div class='embed-container'><iframe src='https://www.youtube.com/embed/jhRHQDm2dBs' frameborder='0' allowfullscreen></iframe></div>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/04/11/games-are-about.html">Games are about power fantasy</a></h1>
 		
 
