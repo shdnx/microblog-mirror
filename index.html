@@ -24,6 +24,109 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/30/of-paint-splatters.html">93% of Paint Splatters are Valid Perl Programs</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/30/of-paint-splatters.html" class="u-url"><time class="dt-published" datetime="2024-04-30 00:58:01 &#43;0200">Apr 30, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://www.mcmillen.dev/sigbovik/">93% of Paint Splatters are Valid Perl Programs</a> (discussed <a href="https://news.ycombinator.com/item?id=40197013">on Hacker News</a>) made me laugh, it is the kind of high-quality trolling that the field of computer science could definitely use more of. It is actually <a href="https://www.mcmillen.dev/sigbovik/2019.pdf">a scientific paper</a> accepted by the SIGBOVIK 2019 conference, and that is glorious.</p>
+<blockquote>
+<p>In this paper, we aim to answer a long-standing open problem in the programming languages community: is it possible to smear paint on the wall without creating valid Perl?</p>
+<p>We answer this question in the affirmative: it is possible to smear paint on the wall without creating a valid Perl program. We employ an empirical approach, using optical character recognition (OCR) software, which finds that merely 93% of paint splatters parse as valid Perl. We analyze the properties of paint-splatter Perl programs, and present seven examples of paint splatters which are not valid Perl programs.</p>
+</blockquote>
+<p>My favourite part:</p>
+<blockquote>
+<p>To be fair to Perl, when perl is run with the -w flag to enable warnings, it does helpfully inform the user that at some point in the future, the Perl developers will most likely pick gggijgziifiiffif as a new reserved word:</p>
+<blockquote>
+<p>Unquoted string &ldquo;gggijgziifiiffif&rdquo; may clash with future reserved word at - line 1.</p>
+</blockquote>
+</blockquote>
+<p>One of the footnotes (number 5, on page 5) did confuse me about as much as it entertained me:</p>
+<blockquote>
+<p>[&hellip;] the Perl program “Illegal division by zero at /tmp/quine.pl line 1.”, when saved in the appropriate location, outputs “Illegal division by zero at /tmp/quine.pl line 1.” The reason for this behavior is left as an exercise for the reader.</p>
+</blockquote>
+<p>Thankfully, a <a href="https://news.ycombinator.com/item?id=40202927">comment on Hacker News</a> provides an explanation: unquoted strings are a feature in Perl, so &ldquo;Illegal division by zero at&rdquo; simply parses as a string without needing quotes around it like in sane(r) languages; &ldquo;tmp/quine&rdquo; however ends up being interpreted as a division of a string by another string. Because that is clearly nonsense, Perl replaces it with another nonsense (a bit like what undefined behaviour does in C and C++ actually!) which is 0 / 0, yielding the error. I love it.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/25/income-taxes-are.html">Income taxes are bullshit</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/25/income-taxes-are.html" class="u-url"><time class="dt-published" datetime="2024-04-25 03:17:49 &#43;0200">Apr 25, 2024</time></a>
+
+		<div class="e-content">
+			 <p>In the news recently: <a href="https://edition.cnn.com/2022/02/10/investing/elon-musk-tesla-zero-tax-bill/index.html">Elon Musk’s US tax bill: $11 billion. Tesla’s: $0</a>.</p>
+<blockquote>
+<p>Elon Musk has repeatedly bragged (or, perhaps, complained) that he’ll pay more in federal taxes for 2021 than anyone has ever paid — about $11 billion. But Tesla apparently won’t pay a cent.</p>
+<p>Tesla may not plan to pay federal taxes any time in the foreseeable future – even though the company just reported by far its most profitable year ever. In 2021, Tesla recorded net income of $5.5 billion, and adjusted income of $7.6 billion.</p>
+</blockquote>
+<p>Wait, so Elon Musk is a good guy now who pays taxes? Well, maybe not quite:</p>
+<blockquote>
+<p>Musk has a history of using the US tax code to pay little or no personal federal income taxes. A report from ProPublica shows that for 2018 Musk and many other Americans near the top of the world’s richest people paid no income tax.</p>
+<p>&hellip;</p>
+<p>But that could well be the last time for years to come that he’s paying a substantial federal tax, unless Congress passes one of the various proposals to tax the net worth of the nation’s wealthiest individuals, rather than just their income. Several Democratic Senators, including Elizabeth Warren, Bernie Sanders and Ron Wyden have proposed that, but so far it hasn’t come close to passing.</p>
+<p>Not surprisingly, Musk opposes such efforts, and has mocked all three senators on Twitter.</p>
+</blockquote>
+<p>I&rsquo;ve long been annoyed by the taxation system as an employee, that is to say, as a regular person (being a freelancer or small business is not significantly different overall). You earn an income, and you immediately pay 20 - 50% of that as income tax. Then you got pay an extra 9 - 27% on everything you buy due to VAT, plus extra on alcohol, gas, and tobacco. Then you go pay your different fees and taxes, such as the mandatory health insurance, water tax (different from the utility costs!), garbage tax, etc. Then you pay tax after properties that you have in most places, and/or you pay tax after any savings you actually managed to gather. It&rsquo;s insane.</p>
+<p>Anyway, the primary offender here is income tax. Why? Because it&rsquo;s tax paid almost exclusively by the working class; that is to say, the group of people that make up 99.99% of all adults who have to work in order to be able to live (barring social services like disability benefit, etc.). The remainder, the ones that do not have to work to be able to live, are the effective ruling class. This includes, but is not completely limited to billionaires. (You do not actually need billions to be free from ever having to work.) They by and large do not pay income tax, as you could read above with Elon Musk.</p>
+<p>This is puzzling, because it creates the opposite as what tiered income tax is supposed to achieve: for more tax to be paid by those who can afford to. For a while, tiered taxation works like it is supposed to: the more you make, progressively the higher percentage income tax you pay. This is fine and fair. But at some point the progression not only stops but reverts and reverts quickly: when you stop relying on income to live. The richest pay the least taxes, primarily due to being able to avoid income tax completely. Other taxes such as property tax, corporate tax, dividend tax, inheritance tax, capital gains tax, and wealth tax all in theory exist to try and close this gap, but they clearly do not work very well.</p>
+<p>Part of the reason for that is the taxation system is extremely complex, and so loopholes can be found by those who are able to afford it. Hence tax havens, and clever tax optimization strategies. But taxation systems are that complex not by accident, but by design; and part of that reason is specifically to enable this sort of thing. (The other reason is corruption; see the excellent <a href="https://www.youtube.com/watch?v=rStL7niR7gs">Rules for Rulers</a> for details.) Obviously; the same people who make the laws that govern taxation are the ones that are benefiting from it.</p>
+<p>The end result is that corporations and the ultra-rich pay next to no taxes, but woe be you if you get a 10K EUR yearly bonus from your company: you pay 50%+ income tax over that.</p>
+<p>I usually try to cite only English sources, but I&rsquo;m going to make an exception for once to reference the article <a href="https://kiszamolo.hu/fizessenek-a-szegenyek/">Let the poors pay (taxes)</a> that is in Hungarian (original title: Fizessenek a szegények). The article points out, with lots of references and graphs, that in the 1950s, about 30-40% of all tax that the government collected was from the income of companies. This then began dropping, and now it is at 6-10%; while at the same time, the tax burden on normal people grew hugely to compensate.</p>
+<p>This goes a long way to explain why, with technology enabling ever-greater productivity and leading to more and more wealth being created, the quality of life of the average person has barely risen in all those decades: the average person is getting a lower and lower share of the wealth being created. One of the main goals of taxation would specifically be to minimize or eliminate dysfunctions like this: redistribute wealth to prevent the usual &ldquo;the rich get richer, the poor gets poorer&rdquo; phenomenon and maintain social cohesion.</p>
+<p>Well, since the 1980s, taxation has come to serve the exact opposite purpose: ensure that the working people subsidize the richest ruling class, allow the richest to maintain their wealth while keeping the working class working.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/25/noncompetes-are-getting.html">Non-competes are getting outlawed in the US</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/25/noncompetes-are-getting.html" class="u-url"><time class="dt-published" datetime="2024-04-25 01:54:07 &#43;0200">Apr 25, 2024</time></a>
+
+		<div class="e-content">
+			 <p>I&rsquo;ve referenced the excellent <a href="https://www.bloomberg.com/account/newsletters/money-stuff">Money Stuff</a> newsletter before, and I continue to absolutely recommend it to anybody with an interest in the world of finance. The most recent article: <a href="https://www.bloomberg.com/opinion/articles/2024-04-24/the-ftc-comes-for-noncompetes">The FTC Comes for Noncompetes</a> which is particularly relevant for anybody working in the field.</p>
+<blockquote>
+<p>Yesterday, the US Federal Trade Commission voted to ban employee noncompete agreements in the US. Future noncompetes are banned; existing noncompetes are enforceable only for senior executives. The rule goes into effect in six months, and there will definitely be lawsuits to block it.</p>
+<p>&hellip;</p>
+<p>In the financial industry, there is a common norm that, if you leave a job, you are not allowed to work for a competitor for some period of months or years, during which you are still paid by your old employer. This makes it harder for you to get a new job and reduces your negotiating leverage at your current job, and if you do leave, the enforced time off devalues your skills and holds back your career. On the other hand: year-long vacation! There are probably some people who structure their financial careers around maximizing gardening leave. Did the FTC end that?</p>
+<p>I don’t think so, though it’s a little unclear.</p>
+</blockquote>
+<p>Apparently non-competes have become rampant also outside of finance and tech, with even <a href="https://www.cnbc.com/2016/06/22/jimmy-johns-drops-non-compete-clauses-following-settlement.html">sandwich shop chains</a> now requiring them. So yeah, something clearly has to change.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/04/25/birds-are-insane.html">Birds are insane</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/04/25/birds-are-insane.html" class="u-url"><time class="dt-published" datetime="2024-04-25 01:23:25 &#43;0200">Apr 25, 2024</time></a>
+
+		<div class="e-content">
+			 <p>Birds are crazy creatures!</p>
+<blockquote>
+<p>In October 2022 a bird with the code name B6 set a new world record that few people outside the field of ornithology noticed. Over the course of 11 days, B6, a young Bar-tailed Godwit, flew from its hatching ground in Alaska to its wintering ground in Tasmania, covering 8,425 miles without taking a single break. For comparison, there is only one commercial aircraft that can fly that far nonstop, a Boeing 777 with a 213-foot wingspan and one of the most powerful jet engines in the world. During its journey, B6—an animal that could perch comfortably on your shoulder—did not land, did not eat, did not drink and did not stop flapping, sustaining an average ground speed of 30 miles per hour 24 hours a day as it winged its way to the other end of the world.</p>
+<p>Many factors contributed to this astonishing feat of athleticism—muscle power, a high metabolic rate and a physiological tolerance for elevated cortisol levels, among other things. B6’s odyssey is also a triumph of the remarkable mechanical properties of some of the most easily recognized yet enigmatic structures in the biological world: feathers. Feathers kept B6 warm overnight while it flew above the Pacific Ocean. Feathers repelled rain along the way. Feathers formed the flight surfaces of the wings that kept B6 aloft and drove the bird forward for nearly 250 hours without failing.</p>
+</blockquote>
+<p>The article: <a href="https://www.scientificamerican.com/article/why-feathers-are-one-of-evolutions-cleverest-inventions/">Why Feathers Are One of Evolution’s Cleverest Inventions</a> (<a href="https://news.ycombinator.com/item?id=40063555">discussion on HackerNews</a>) from Scientific American goes on to talk about feathers. A lot. But to me, this above part was the most interesting.</p>
+<p>Because, I mean, yeah, that is just bonkers. Birds are completely overpowered! No wonder there&rsquo;s a conspiracy theory about them:</p>
+<style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style>
+<div class='embed-container'><iframe src='https://www.youtube.com/embed/3VEkzweBJPM' frameborder='0' allowfullscreen></iframe></div>
+<p>Well, a fake one anyway.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/04/25/a-little-bit.html">A little bit of slope makes up for a lot of y-intercept</a></h1>
 		
 
