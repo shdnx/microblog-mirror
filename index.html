@@ -24,6 +24,56 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/05/13/comparing-implementations-of.html">Comparing implementations of std::string</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/05/13/comparing-implementations-of.html" class="u-url"><time class="dt-published" datetime="2024-05-13 01:49:45 &#43;0200">May 13, 2024</time></a>
+
+		<div class="e-content">
+			 <p>Highly recommended reading for C++ developers: [https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742](An informal comparison of the three major implementations of std:string) (discussed on <a href="https://www.reddit.com/r/cpp/comments/1coyneg/an_informal_comparison_of_the_three_major/">Reddit</a> and <a href="https://news.ycombinator.com/item?id=40321824">Hacker News</a>), which goes into how <code>std::string</code> is implemented by the 3 major compilers: GCC (libstdc++), MSVC, and Clang (libc++), and what design choices and trade-offs they each made.</p>
+<p>I was surprised that under both GCC and MSVC <code>std::string</code> is 32 bytes big (on 64 bit platforms), I thought already that Clang&rsquo;s 24 bytes is way too big! In virtually every case I have seen, <code>std::string</code>s are treated as immutable, so the extra 8 bytes for capacity is useless. You may not mind that much, but if you&rsquo;re really trying to optimize for performance and worry about things like cache lines, then those 8 bytes hurt: it&rsquo;s a waste of 1/8th of a 64-byte cache line! So much for the &ldquo;you don&rsquo;t pay for what you don&rsquo;t use and what you do use you couldn&rsquo;t implement any better yourself&rdquo; principle&hellip;</p>
+<p>(I do have another, related rant about C++: for a language that places such a strong focus on efficiency, why is there no API for me to extract the pointer from an <code>std::string</code> / <code>std::vector</code> and take ownership of it? Or build an <code>std::vector</code> / <code>std::string</code> by passing it a pointer along with ownership of it? You can do this in Rust, see e.g. <a href="https://doc.rust-lang.org/std/vec/struct.Vec.html#method.from_raw_parts"><code>Vec::from_raw_parts()</code></a> for an example.)</p>
+<p>Anyhow, Clang&rsquo;s (well, libc++&rsquo;s) <code>std::string</code> being 8 bytes smaller does come at a performance penalty: virtually every operation, even things that you&rsquo;d expect to be trivial like <code>empty()</code> and <code>size()</code> have to do branching as they must do different things depending on whether or not the string data is small (i.e. stored in-place with small string optimization) or large (stored on the heap). MSVC and GCC do not and so the Assembly for their common functions look exactly as simple as you&rsquo;d expect and hope. I am very curious whether overall Clang&rsquo;s choice is worthwhile, it&rsquo;s probably highly situational: in some cases I&rsquo;d expect it to be a massive win, in others a massive loss.</p>
+<p>Really good article regardless, as is common from The Old New Thing! An interesting view into the nontrivial decisions you must make when building libraries, especially such core library types where it&rsquo;s completely impossible for you to predict all the circumstances under which your APIs will be used and so you have little more than guesses about what trade-offs are worthwhile e.g. performance-wise.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/05/01/traditional-banking-system.html">Traditional banking system issues</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/05/01/traditional-banking-system.html" class="u-url"><time class="dt-published" datetime="2024-05-01 23:53:33 &#43;0200">May 1, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://www.bloomberg.com/opinion/articles/2024-05-01/banks-are-still-where-the-money-isn-t">Money Stuff: Banks Are Still Where the Money Isn’t</a> talks about a curious phenomenon: a big bank (Barclays Plc) struggling to find the money to lend out for its credit cards, and ends up essentially borrowing money from private equity (Blackstone) to do it.</p>
+<p>Huh?! Isn&rsquo;t, like, the <em>entire point</em> of banks is to act as capital pools, funded by bank deposits? Traditionally, yes, but this has some problems:</p>
+<ul>
+<li>bank deposits can be withdrawn at any time, which inherently means that they are difficult to rely on for the longer term, so they make a problematic source for long-term loans like mortgages,</li>
+<li>realizing this, regulators have indeed required banks to have huge pools capital available, uninvested and not-loaned-out; regulations that have just been getting tighter and tighter,</li>
+<li>in the case where the shit does hit the fan, the banks will have lost the deposits of regular people who have definitely not signed up for a bank account thinking that it was a risky investment; then the government and/or central bank get involved and the bank gets bailed out as a perfect example of &ldquo;privatize profits, socialize losses&rdquo;.</li>
+</ul>
+<blockquote>
+<p>There is something magical about how banking transmutes risky assets (loans) into risk-free liabilities (deposits). “A banking system is a superposition of fraud and genius that interposes itself between investors and entrepreneurs,” wrote Steve Randy Waldman in 2011; it allows society to use the money of risk-averse depositors to fund risky investments in growth. But it is possible that this magic no longer works: In a world of financial transparency and fast communications technology and flighty deposits, you can’t really expect to hide the risks of the banking system; you have to fund the loans with people who know they’re funding the loans.</p>
+</blockquote>
+<p>Indeed, all the financial and banking crises show this point: there is a fundamental tension between taking potentially short-term capital (deposits) and trying to use them for something potentially long-term (loans, mortgages), and sometimes it just blows up, especially because people are becoming more and more aware of what&rsquo;s happening, decreasing trust in banks, and increasing the chances of bank runs, like the regional banking crisis in the US last year shows.</p>
+<p>At the same time, and this is important to stress out: banking provides a critical piece of financial infrastructure.
+A proposed solution is to shift towards <em>narrow banking</em>, which tries to adopt to this reality:</p>
+<blockquote>
+<p>Plenty of people — insurance companies, retirement savers — want to earn a return on their money and don’t need it anytime soon; their money can be locked up in long-term loans. The money that people keep in the bank just to pay rent and buy sandwiches doesn’t need to be pooled and invested in risky loans; it should just sit in the vault.</p>
+<p>This idea — that bank deposits should just sit in the vault (or, realistically, in electronic money at the Federal Reserve), while risky loans should be funded by long-term investors who intend to take those risks — is sometimes called “narrow banking.”</p>
+</blockquote>
+<p>Of course, there are issues with this idea as well, notably that loans will likely get more expensive:</p>
+<blockquote>
+<p>[&hellip;] “because non-banks have higher costs of funding, consumers and businesses may see loan rates rise.” The traditional view is that non-banks have higher costs of funding than banks: Blackstone’s insurance customers want to earn a juicy return on their investment in risky credit-card assets, while Barclays’ depositors are happy to get a return of 0% on their checking-account balances. It’s just that those cheap deposits are not actually so cheap anymore, when you take into account their risk, and the regulation designed to confine that risk.</p>
+</blockquote>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/04/30/of-paint-splatters.html">93% of Paint Splatters are Valid Perl Programs</a></h1>
 		
 
