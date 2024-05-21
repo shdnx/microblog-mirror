@@ -24,13 +24,139 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/05/22/frontrunning-the-ethereum.html">Front-running the Ethereum front-runners</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/05/22/frontrunning-the-ethereum.html" class="u-url"><time class="dt-published" datetime="2024-05-22 01:36:59 &#43;0200">May 22, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://www.bloomberg.com/opinion/articles/2024-05-16/crypto-brothers-front-ran-the-front-runners">Money Stuff: Crypto Brothers Front-Ran the Front-Runners</a> talks about a fascinating case, with further details in <a href="https://www.bloomberg.com/opinion/articles/2024-05-20/the-endless-shrimp-investigation">Money Stuff: The Endless Shrimp Investigation</a> under header &ldquo;ETH consensus&rdquo;, the linked <a href="https://www.coindesk.com/opinion/2024/05/15/what-the-dojs-first-mev-lawsuit-means-for-ethereum/amp/">CoinDesk article: What the DOJ’s First MEV Lawsuit Means for Ethereum</a>, as well as <a href="https://collective.flashbots.net/t/post-mortem-april-3rd-2023-mev-boost-relay-incident-and-related-timing-issue/1540">the Flashbots postmortem</a>. Until now, I wasn&rsquo;t actually aware of how Bitcoin/Ethereum transactions happened, but the article provides a good explanation:</p>
+<blockquote>
+<p>Time in crypto is measured in blocks. Intuitively, people submit orders to do transactions on a crypto blockchain, and then periodically a batch of those transactions is enshrined in the official ledger of that blockchain. In Bitcoin, a block contains roughly 10 minutes’ worth of transactions; in Ethereum, it’s seconds.</p>
+<p>So intuitively, Ethereum transactions happen in big simultaneous bunches every 12 seconds. But the bunches can’t really be simultaneous: If there is one rare nonfungible token for sale, and two people want to buy it, only one of them can. One transaction has to be first. So the transactions within a block are ordered; they happen in sequence. But they are not necessarily ordered by time.</p>
+<p>How does the blockchain decide which transactions to record, and in what order? In Ethereum, the answer is: with money. [&hellip;] People can also bid more — a “priority fee” or “tip” — to get their transactions executed quickly. Every 12 seconds, some computer [a validator] on the Ethereum network is selected to record the transactions in a block. [&hellip;] The block proposer will naturally prioritize the transactions that pay more fees, because then it will get more money.</p>
+</blockquote>
+<p>This mechanism however is what allows generalized front-runners to exist on Ethereum: they see you are trying to do a profitable trade, so they will copy your trade, but <em>bid more</em>, so their trade gets executed instead of yours. In fact, they don&rsquo;t even need to know if your trade will be profitable: if they see that you are trying to buy an illiquid coin and therefore push up the price, they will front-run you by buying it first, and then selling it to you at an inflated price: the highest price your order will still trade at.</p>
+<p>This is a rough environment to trade in! <a href="https://www.paradigm.xyz/2020/08/ethereum-is-a-dark-forest">Ethereum is a Dark Forest</a> indeed. But, apparently, all of this is completely legal, insofar as any crypto gets to be legal: by existing in a perpetual gray zone. But yeah, unless you know what you are doing, it doesn&rsquo;t seem like a good idea to meddle.</p>
+<p>Well, as it turns out, two brothers at MIT did know what they were doing, and they managed to front-run the frontrunners by exploiting a bug in the software that block proposers use (MEV-Boost). Now they are facing charges:</p>
+<blockquote>
+<p>Two brothers who studied at MIT were charged with exploiting a weakness in the Ethereum blockchain and stealing $25 million in 12 seconds, in what prosecutors called a first-of-its-kind caper.</p>
+<p>Anton Peraire-Bueno, 24, and James Peraire-Bueno, 28, were charged by federal prosecutors in Manhattan with fraud and money laundering offenses. They are accused of carrying out the lightning-fast heist, plotted over the course of months, from their keyboards last year.</p>
+<p>“The brothers, who studied computer science and math at one of the most prestigious universities in the world, allegedly used their specialized skills and education to tamper with and manipulate the protocols relied upon by millions of Ethereum users across the globe,” Damian Williams, the US attorney for the Southern District of New York, said in a statement.</p>
+</blockquote>
+<p>The case is very controversial! One might be inclined to read it as &ldquo;front-running is legal, but front-running the frontrunners is illegal&rdquo;, but that is not the quite true: my read is that the case is more about <em>hacking</em>: exploiting a behaviour that was not intended or understood in software (i.e. a bug), and using it for financial gain. The scheme was brilliant, and my understanding is that it worked like so:</p>
+<ol>
+<li>Buy some shitcoin or another to next to nothing.</li>
+<li>Set up your own validator and wait until it&rsquo;s selected to be the block proposer. Now your own software gets to decide how to order the transactions!</li>
+<li>Put a huge transaction to buy the same shitcoin for a hugely inflated price. This will trigger the front-runners: they want to be able to sell you that shitcoin for that ridicolous price!</li>
+<li>In order to do that, they will execute what&rsquo;s called a &ldquo;sandwich attack&rdquo;: they will first put an order to buy the coin at its market price, then they put a second order after the victim&rsquo;s to sell it to them for their inflated price.</li>
+<li>The block proposer normally doesn&rsquo;t get to see what the transactions do. Here is where exploiting bug comes in: it allowed the brothers&rsquo;s software to circumvent that, and construct a block with full knowledge of the transactions contained therein.</li>
+<li>See the transactions of the front-runners, and <em>re-order them</em> so that instead of buying from the market, they buy the coins you bought in step 1 for inflated prices.</li>
+<li>Profit?</li>
+</ol>
+<p>I&rsquo;m not exactly clear on how step 6 worked, and the sources I found don&rsquo;t seem to elaborate.</p>
+<blockquote>
+<p>“If you hope Ethereum will always be a ‘dark forest’ where on-chain predators compete with each other for arbitrage opportunities, then you probably dislike this prosecution,” Consensys General Counsel Bill Hughes told CoinDesk in an interview. “Thankfully, I think there are only a few who are actually like that. If you prefer predatory behavior like this be curtailed, which is the vast majority, then you are likely to feel the opposite.”</p>
+<p>“All of the defendants' preparation for the attack and their completely ham-fisted attempts to cover their tracks afterwards, including extensive incriminating google searches, just helps the government prove they intended to steal. All that evidence will look very bad to a jury. I suspect they plead guilty at some point,” he added.</p>
+</blockquote>
+<p>As brilliant as their attack was, the brothers made a major blunder by performing some rather questionable Google searches:</p>
+<blockquote>
+<p>Before they did the trade, Anton Peraire-Bueno allegedly “searched online for cryptocurrency exchanges with limited ‘know your customer’ protocols and ways to launder cryptocurrency, including searches for ‘how to wash crypto’ and ‘cefi exchanges with no kyc.’” And after the trade, as they were allegedly “laundering the fraud proceeds from the Exploit,” James Peraire-Bueno allegedly “searched online for, among other things, ‘money laundering,’ ‘exploit,’ ‘computer fraud abuse act,’ and ‘does the united states extradite to [foreign country].’”</p>
+<p>The Justice Department, reasonably, cites these searches as evidence of a guilty conscience. Also though I wonder how well they worked? Like, has anyone ever (1) acquired $25 million of ill-gotten money, (2) googled “money laundering” and (3) successfully used to results to launder the money?</p>
+</blockquote>
+<p>I think that is hilarious, but also a bit strange. You would think that somebody being able to plan and execute such a sophisticated attack would know better than to Google such terms. But that&rsquo;s probably not fair: software hacking and finance are both commonly viewed as games of a sort: you get to make a lot of money by solving very complicated puzzles. And the ability to solve puzzles well does not necessarily correlate with having the wisdom to understand how and when you can do that.</p>
+<blockquote>
+<p>Still, others remain convinced that exploiting MEV bots designed to reorder transactions is fair game. “It&rsquo;s a little hard to sympathize with MEV bots and block builders getting f<em>cked over by block proposers, in the exact same way they are f</em>cking over end users,” the anonymous researcher said.</p>
+</blockquote>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+
+		<a href="https://blog.gaborkozar.me/2024/05/16/easy-to-make.html" class="u-url"><time class="dt-published" datetime="2024-05-16 01:45:49 &#43;0200">May 16, 2024</time></a>
+
+		<div class="e-content">
+			 <blockquote>
+<p>Easy to make rules. Easy to make systems with a perfect logic and rigor. All you need to do is leave out the mercy, yeah? Then when you put people into it and they get chewed to nothing, it&rsquo;s the person&rsquo;s fault. Not the rules. Everything we do that&rsquo;s worth shit, we&rsquo;ve done with people. Flawed, stupid, lying, rules-breaking people. [&hellip;] Our rules are good, and they&rsquo;d work perfectly if it were only a different species.</p>
+</blockquote>
+<p>&ndash; <a href="https://www.goodreads.com/book/show/28335698-tiamat-s-wrath">The Expanse book 8: Tiamat&rsquo;s Wrath</a> by James S.A. Corey</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/05/15/linear-types-and.html">Linear types and how they let you control the future</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/05/15/linear-types-and.html" class="u-url"><time class="dt-published" datetime="2024-05-15 23:23:33 &#43;0200">May 15, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://verdagon.dev/blog/higher-raii-uses-linear-types">Higher RAII, and the Seven Arcane Uses of Linear Types</a> (discussed on <a href="https://news.ycombinator.com/item?id=40359886">Hacker News</a>) introduced me to the concept of linear types and how they can be useful. It turns out: they can be extremely useful, because you can use them to make a promise to do something to the compiler, and it will hold you to it. In clickbait-y terms: they let you control the future!</p>
+<blockquote>
+<p>A linear struct must eventually be explicitly destroyed. In other words, a linear struct can&rsquo;t just go out of scope. When the user lets a linear struct go out of scope, the compiler gives an error.</p>
+</blockquote>
+<p>No mainstream languages currently have this feature, but the article has convinced me that it would be an extremely good idea to add it. Some proposed uses:</p>
+<blockquote>
+<ul>
+<li>Keep your caches consistent with your data</li>
+<li>Prevent zombie temporary states</li>
+<li>Prevent concurrency bugs and ensure messages are handled</li>
+<li>Help with database consistency; prevent forgotten updates</li>
+<li>Prevent certain kinds of memory leaks (even GC or Rust leaks!)</li>
+<li>Prevent accidentally canceling an ongoing thread or connection</li>
+<li>Prevent an accidental rollback of a perfectly good transaction</li>
+<li>Guarantee a provided callback is actually called</li>
+<li>Guarantee we eventually log something</li>
+</ul>
+</blockquote>
+<p>As a side-note, I don&rsquo;t hate the acronym RAII like many seem to, including the article&rsquo;s author, but <a href="https://news.ycombinator.com/item?id=40365955">I do agree</a> that &ldquo;Higher RAII&rdquo; would be better called &ldquo;named destructors&rdquo;.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/05/13/the-dysfunction-of.html">The dysfunction of emotional support animals</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/05/13/the-dysfunction-of.html" class="u-url"><time class="dt-published" datetime="2024-05-13 04:26:40 &#43;0200">May 13, 2024</time></a>
+
+		<div class="e-content">
+			 <p><a href="https://www.astralcodexten.com/p/the-emotional-support-animal-racket">The Emotional Support Animal Racket</a> talks about emotional support animals and eloquently but succinctly critiques the entire dysfunctional situation. I found this particularly interesting because it provides a very clear example of how processes and systems can fail while their individual components appear to make sense when considered separately.</p>
+<p>As far as I know, there is no such thing as emotional support animals in Europe, so here is how they work:</p>
+<blockquote>
+<p>Sometimes places ban or restrict animals. For example, an apartment building might not allow dogs. Or an airline might charge you money to transport your cat. But the law requires them to allow service animals, for example guide dogs for the blind. A newer law also requires some of these places to allow emotional support animals, ie animals that help people with mental health problems like depression or anxiety. So for example, if you’re depressed, but having your dog nearby makes you feel better, then a landlord has to let you keep your dog in the apartment.</p>
+</blockquote>
+<p>So far, so good.</p>
+<blockquote>
+<p>Clinically and scientifically, this is great. Many studies show that pets help people with mental health problems. Depressed people really do benefit from a dog who loves them. Anxious people really do feel calmer when they hold a cute kitten.</p>
+<p>Legally, it’s a racket. In order to benefit from these rules, you need for a psychiatrist to write you an “emotional support animal letter”, saying that your pet is actually an emotional support animal. In theory, the psychiatrist should evaluate you carefully, using their vast expertise to distinguish between an emotional support animal and a normal pet. In practice [&hellip;], when you take out all the legalese, the executive summary is “think really hard about whether this animal really helps this person, then think really hard about whether it will cause trouble, and if it helps the person and won’t cause trouble, sign the letter”.</p>
+</blockquote>
+<p>Uh oh. So, it is legally required that somebody (your therapist) determines whether your pet qualifies as an emotional support animal, but without any actual guidelines or rules given for what this means. Which sort of makes sense, in that this is the kind of stuff that would be really really hard, if not outright impossible, to properly specify. I mean, if you think about it, any pet should by all rights be an &ldquo;emotional support animal&rdquo; if you just look at it naively. But then&hellip; what&rsquo;s the point in requiring this whole qualification thing to begin with&hellip;?</p>
+<blockquote>
+<p>[&hellip;] But the process [&hellip;] combines an insistence on gatekeepers with a total lack of interest over whether they actually gatekeep. The end result is a gatekeeping cargo cult, where you have to go through the (expensive, exhausting) motions of asking someone’s permission, without the process really filtering out good from bad applicants. And the end result of that is a disguised class system, where anyone rich and savvy enough to engage with the gatekeeping process gets extra rights, but anyone too poor or naive to access it has to play by the normal, punishingly-restrictive rules.</p>
+</blockquote>
+<p>Right. Of course, it&rsquo;s important to note the context that gave rise to the whole problem to begin with:</p>
+<blockquote>
+<p>Probably it’s bad that society is so hostile to pets. Probably it’s bad that we’ve reached the level of housing shortage where landlords don’t need to compete for tenants, and they might as well ban all pets if it makes their lives even slightly easier. Probably the emotional support animal loophole makes things better rather than worse.</p>
+</blockquote>
+<p>Thinking a bit further, I expect the biggest issue is that a very small minority of bad owners and/or bad pets cause a disproportionate amount of damage and disruption. Chances are, under normal circumstances your landlord would never notice that you had a cat or a dog, and so they would have no reason to care about that; but there&rsquo;s a nonzero chance that a pet will do something really bad like rip the curtains and the pet&rsquo;s owner refuses to take responsibility for it&hellip; so you might as well just ban all pets altogether and not deal with the risk, right? Indeed, a few rotten apples ruining the whole batch is an age-old story of how we don&rsquo;t get to have nice things.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/05/13/comparing-implementations-of.html">Comparing implementations of std::string</a></h1>
 		
 
 		<a href="https://blog.gaborkozar.me/2024/05/13/comparing-implementations-of.html" class="u-url"><time class="dt-published" datetime="2024-05-13 01:49:45 &#43;0200">May 13, 2024</time></a>
 
 		<div class="e-content">
-			 <p>Highly recommended reading for C++ developers: [https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742](An informal comparison of the three major implementations of std:string) (discussed on <a href="https://www.reddit.com/r/cpp/comments/1coyneg/an_informal_comparison_of_the_three_major/">Reddit</a> and <a href="https://news.ycombinator.com/item?id=40321824">Hacker News</a>), which goes into how <code>std::string</code> is implemented by the 3 major compilers: GCC (libstdc++), MSVC, and Clang (libc++), and what design choices and trade-offs they each made.</p>
+			 <p>Highly recommended reading for C++ developers: <a href="https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742">An informal comparison of the three major implementations of <code>std::string</code></a> (discussed on <a href="https://www.reddit.com/r/cpp/comments/1coyneg/an_informal_comparison_of_the_three_major/">Reddit</a> and <a href="https://news.ycombinator.com/item?id=40321824">Hacker News</a>), which goes into how <code>std::string</code> is implemented by the 3 major compilers: GCC (libstdc++), MSVC, and Clang (libc++), and what design choices and trade-offs they each made.</p>
 <p>I was surprised that under both GCC and MSVC <code>std::string</code> is 32 bytes big (on 64 bit platforms), I thought already that Clang&rsquo;s 24 bytes is way too big! In virtually every case I have seen, <code>std::string</code>s are treated as immutable, so the extra 8 bytes for capacity is useless. You may not mind that much, but if you&rsquo;re really trying to optimize for performance and worry about things like cache lines, then those 8 bytes hurt: it&rsquo;s a waste of 1/8th of a 64-byte cache line! So much for the &ldquo;you don&rsquo;t pay for what you don&rsquo;t use and what you do use you couldn&rsquo;t implement any better yourself&rdquo; principle&hellip;</p>
 <p>(I do have another, related rant about C++: for a language that places such a strong focus on efficiency, why is there no API for me to extract the pointer from an <code>std::string</code> / <code>std::vector</code> and take ownership of it? Or build an <code>std::vector</code> / <code>std::string</code> by passing it a pointer along with ownership of it? You can do this in Rust, see e.g. <a href="https://doc.rust-lang.org/std/vec/struct.Vec.html#method.from_raw_parts"><code>Vec::from_raw_parts()</code></a> for an example.)</p>
 <p>Anyhow, Clang&rsquo;s (well, libc++&rsquo;s) <code>std::string</code> being 8 bytes smaller does come at a performance penalty: virtually every operation, even things that you&rsquo;d expect to be trivial like <code>empty()</code> and <code>size()</code> have to do branching as they must do different things depending on whether or not the string data is small (i.e. stored in-place with small string optimization) or large (stored on the heap). MSVC and GCC do not and so the Assembly for their common functions look exactly as simple as you&rsquo;d expect and hope. I am very curious whether overall Clang&rsquo;s choice is worthwhile, it&rsquo;s probably highly situational: in some cases I&rsquo;d expect it to be a massive win, in others a massive loss.</p>
