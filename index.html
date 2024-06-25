@@ -24,6 +24,47 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/06/26/c-bits-polymorphism.html">C&#43;&#43; bits: polymorphism and delete; optimizing atomic writes</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/06/26/c-bits-polymorphism.html" class="u-url"><time class="dt-published" datetime="2024-06-26 00:10:57 &#43;0200">Jun 26, 2024</time></a>
+
+		<div class="e-content">
+			 <p>I have found two very interesting questions and answers on Stack Overflow this week that made me learn something new:</p>
+<ol>
+<li>
+<p><a href="https://stackoverflow.com/q/78664637/128240">How does C++ select the <code>delete</code> operator in case of replacement in subclass?</a>; the answer: the compiler emits two destructors in the vtable: a regular one, and a deleting destructor that also automatically calls its <code>operator delete</code> after. Caveats apply: see the answer in the SO thread.</p>
+</li>
+<li>
+<p><a href="https://stackoverflow.com/q/45960387/128240">Why don&rsquo;t compilers merge redundant std::atomic writes?</a> (and also <a href="https://stackoverflow.com/q/78656116/128240">Can the C++ compiler coalesce adjacent mutex locks?</a>); the answer: the standard would allow them to, but it would violate the principle of least surprise and make some code not work as expected (such as updating progress bars), so they currently just choose not to. There are proposals in place to add something to the standard that would indicate to the compiler that it&rsquo;s safe to make such optimizations. There are good examples and details in the SO answers.</p>
+</li>
+</ol>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
+			<h1><a href="https://blog.gaborkozar.me/2024/05/26/the-hell-of.html">The hell of C&#43;&#43; modules</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/05/26/the-hell-of.html" class="u-url"><time class="dt-published" datetime="2024-05-26 00:47:22 &#43;0200">May 26, 2024</time></a>
+
+		<div class="e-content">
+			 <p>I&rsquo;ve known from the moment that C++ modules were introduced that the whole thing is the kind of good-idea-turned-into-cursed-&ldquo;solution&rdquo; that only a C++ developer could have ever come up with. It has all the hallmarks: it tries to solve a well understood, already solved problem (see e.g. the module system of D, Fortran, or Objective C++) and adds flexibility and features into it until no intelligence of any kind can really understand them, potentially but not certainly excluding The Culture-esq artificial super intelligences.</p>
+<p>Merely the fact that have to parse the source files to even discover what module they are a part of, and the module name can even be a preprocessor symbol should suffice to show what level of stupid idea we are talking about, but the article that triggered this present rant: <a href="https://nibblestew.blogspot.com/2023/10/the-road-to-hell-is-paved-with-good.html">The road to hell is paved with good intentions and C++ modules</a> (discussed on <a href="https://news.ycombinator.com/item?id=40476134">Hacker News</a>) of course goes into more details than that. To me, this was the most interesting part:</p>
+<blockquote>
+<p>AFAICT this setup has been designed mostly by CMake devs. Which kind of makes you wonder. Why would a company that makes a lot of money consulting and training people on their product make the practical use of C++ modules really hard for competing projects to implement? That would make it an even bigger burden to replace their software with something else? What kind of business goal could that possibly serve?</p>
+<p>&hellip;</p>
+<p>[&hellip;] The document mentions on page 10 that a port from Autotools to CMake cost $1.2 million, 500k of which was internal costs and 700k went to Kitware for implementing basic functionality missing in CMake.</p>
+</blockquote>
+<p>And that, ladies and gentlemen, are why we can&rsquo;t have nice things. Ugh.</p>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/05/22/frontrunning-the-ethereum.html">Front-running the Ethereum front-runners</a></h1>
 		
 
@@ -65,9 +106,17 @@
 <p>The Justice Department, reasonably, cites these searches as evidence of a guilty conscience. Also though I wonder how well they worked? Like, has anyone ever (1) acquired $25 million of ill-gotten money, (2) googled “money laundering” and (3) successfully used to results to launder the money?</p>
 </blockquote>
 <p>I think that is hilarious, but also a bit strange. You would think that somebody being able to plan and execute such a sophisticated attack would know better than to Google such terms. But that&rsquo;s probably not fair: software hacking and finance are both commonly viewed as games of a sort: you get to make a lot of money by solving very complicated puzzles. And the ability to solve puzzles well does not necessarily correlate with having the wisdom to understand how and when you can do that.</p>
+<p>Nonetheless, the case is highly controversial. As Matt Lavine put it:</p>
 <blockquote>
-<p>Still, others remain convinced that exploiting MEV bots designed to reorder transactions is fair game. “It&rsquo;s a little hard to sympathize with MEV bots and block builders getting f<em>cked over by block proposers, in the exact same way they are f</em>cking over end users,” the anonymous researcher said.</p>
+<p>But to me what is wild about this case is that the Justice Department is bringing down the full weight of US federal criminal law to protect Ethereum front-running bots. The word “front-run” is right there in the indictment! The Justice Department has a long history of prosecuting people for front-running! Because it is traditionally a crime!</p>
+<p>&hellip;</p>
+<p>But here! I mean! Ethereum and its decentralized exchanges have a market structure that is like “bots can look at your transactions and front-run them if that’s profitable.” And these guys, allegedly, front-ran the front-runners; they turned the market structure around so that they could get an early look at the front-running bots’ front-running transactions and front-run them instead. By hacking, sure, sure, it’s bad. But it leaves the Justice Department in the odd position of saying that the integrity of crypto front-running is important and must be defended.</p>
 </blockquote>
+<p>Or, as an anonymous researcher has said a bit less delicately:</p>
+<blockquote>
+<p>It&rsquo;s a little hard to sympathize with MEV bots and block builders getting f-cked over by block proposers, in the exact same way they are f-cking over end users.</p>
+</blockquote>
+<p>Yeeeeeahh. The USA DOJ is in a weird place here, and I do not understand the point of them bringing this case. Do they really have nothing better to do?</p>
 
 		</div>
 	  </div>
