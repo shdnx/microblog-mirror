@@ -24,6 +24,232 @@
 	
 	  <div class="h-entry">
 		
+			<h1><a href="https://blog.gaborkozar.me/2024/07/01/order-book-in.html">Order book in Rust: fixing the undefined behaviour</a></h1>
+		
+
+		<a href="https://blog.gaborkozar.me/2024/07/01/order-book-in.html" class="u-url"><time class="dt-published" datetime="2024-07-01 15:10:32 &#43;0200">Jul 1, 2024</time></a>
+
+		<div class="e-content">
+			 <p>In the <a href="https://blog.gaborkozar.me/2024/03/11/implementing-order-books.html">last post</a> of the <em>Implementing order books in C++ and Rust</em> series I have proposed an unsafe Rust solution. Unfortunately, that solution turns out to invoke undefined behaviour (UB) due to violating the stacked borrows model of Rust. It does appear to work perfectly fine at the moment, but UB (as C and C++ programmers well know) is no joke: it may continue to work for years, until one day an unrelated code change causes it to break.</p>
+<p>We are going to start where we left off in the last blogpost: for reference, <a href="https://gist.github.com/shdnx/e5d8f77a792d00e3d94274949be9285b">here is the full source code</a>, cleaned up a bit compared to last time but having the exact same structure and logic.</p>
+<h2 id="discovering-the-issue-with-miri">Discovering the issue with Miri</h2>
+<p>Rust has a tool called <a href="https://github.com/rust-lang/miri">Miri</a> that is invaluable for detecting undefined behaviour even if it&rsquo;s not actively causing issues: it&rsquo;s like a bunch of C++ sanitizers rolled into one.</p>
+<p>Consider the following sequence of actions all on the same orderbook and side (this is exactly what <code>main()</code> in the <a href="https://gist.github.com/shdnx/e5d8f77a792d00e3d94274949be9285b#file-blog-rust-orderbook-unsafe-ub-rs-L244">reference code</a> does):</p>
+<ol>
+<li>Insert order with ID 1, and store its <code>OrderHandle</code>,</li>
+<li>Insert order with ID 2,</li>
+<li>Cancel order ID 1 using its <code>OrderHandle</code>.</li>
+</ol>
+<p>Running Miri against <a href="https://gist.github.com/shdnx/e5d8f77a792d00e3d94274949be9285b">our latest version of the unsafe code</a> yields this diagnostic:</p>
+<pre tabindex="0"><code>error: Undefined Behavior: trying to retag from &lt;5771&gt; for Unique permission at alloc2192[0x0], but that tag does not exist in the borrow stack for this location
+   --&gt; ../blog/blogpost.rs:168:46
+    |
+168 |                     let orderbook = unsafe { &amp;mut *orderbook_ptr };
+    |                                              ^^^^^^^^^^^^^^^^^^^
+    |                                              |
+    |                                              trying to retag from &lt;5771&gt; for Unique permission at alloc2192[0x0], but that tag does not exist in the borrow stack for this location
+    |                                              this error occurs as part of retag at alloc2192[0x0..0x30]
+    |
+    = help: this indicates a potential bug in the program: it performed an invalid operation, but the Stacked Borrows rules it violated are still experimental
+    = help: see https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md for further information
+help: &lt;5771&gt; was created by a SharedReadWrite retag at offsets [0x0..0x30]
+   --&gt; ../blog/blogpost.rs:165:41
+    |
+165 |             let orderbook_ptr: *mut _ = self;
+    |                                         ^^^^
+help: &lt;5771&gt; was later invalidated at offsets [0x0..0x30] by a Unique retag
+   --&gt; ../blog/blogpost.rs:203:25
+    |
+203 |           let orderbook = self
+    |  _________________________^
+204 | |             .order_books
+205 | |             .entry(symbol)
+206 | |             .or_insert_with(|| Box::new(Orderbook::new()))
+207 | |             .as_mut();
+    | |_____________________^
+    = note: BACKTRACE (of the first span):
+    = note: inside closure at ../blog/blogpost.rs:168:46: 168:65
+    = note: inside `&lt;{closure@../blog/blogpost.rs:167:37: 167:44} as std::ops::FnOnce&lt;()&gt;&gt;::call_once - shim(vtable)` at /home/gabor/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs:250:5: 250:71
+    = note: inside `&lt;std::boxed::Box&lt;dyn std::ops::FnOnce()&gt; as std::ops::FnOnce&lt;()&gt;&gt;::call_once` at /home/gabor/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/boxed.rs:2063:9: 2063:52
+note: inside `Exchange::cancel`
+   --&gt; ../blog/blogpost.rs:221:13
+    |
+221 |             (order_handle.remove_fn)();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: inside `main`
+   --&gt; ../blog/blogpost.rs:271:5
+    |
+271 |     exchange.cancel(OrderId(1));
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+</code></pre><p>Uh-oh, undefined behaviour! This is what we get for messing with <code>unsafe</code> without properly understanding what the rules are. Writing unsafe Rust is <em>harder</em> than writing C++, because the Rust compiler makes more and stronger assumptions about what our code can and cannot do in order to better optimize safe Rust; in unsafe Rust though, we then have to be aware of all of these and also be very careful not to violate them.</p>
+<h2 id="mutable-references-are-really-unique">Mutable references are really unique</h2>
+<p>So what is causing UB here? Miri does a decent job of explaining what happens, but only once you understand the terminology. Recall that in Rust, mutable references like <code>&amp;mut Orderbook</code> are <em>exclusive</em> (as opposed to immutable references which are shared): if a mutable reference to a location (what you would call an object in C++) exists, then that means that no other references to that same location may exist. For references, this is checked by the borrow checker, and guarantees that this is the case: the compilation will fail if you have two competing mutable references.</p>
+<p>But what about pointers? Let&rsquo;s see an example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> val <span style="color:#f92672">=</span> <span style="color:#ae81ff">15</span>;
+<span style="color:#66d9ef">let</span> ptr: <span style="color:#f92672">*</span><span style="color:#66d9ef">mut</span> _ <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> val;
+<span style="color:#66d9ef">let</span> mref <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> val;
+<span style="color:#f92672">*</span>mref <span style="color:#f92672">=</span> <span style="color:#ae81ff">17</span>;
+<span style="color:#66d9ef">unsafe</span> { <span style="color:#f92672">*</span>ptr <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>; };
+println!(<span style="color:#e6db74">&#34;{}&#34;</span>, <span style="color:#f92672">*</span>mref);
+</code></pre></div><p>This compiles and runs just fine (printing 16), but Miri does not like it:</p>
+<pre tabindex="0"><code>error: Undefined Behavior: attempting a write access using &lt;2452&gt; at alloc1251[0x0], but that tag does not exist in the borrow stack for this location
+    |
+    | unsafe { *ptr = 16; };
+    |          ^^^^^^^^^
+    |          |
+    |          attempting a write access using &lt;2452&gt; at alloc1251[0x0], but that tag does not exist in the borrow stack for this location
+    |          this error occurs as part of an access at alloc1251[0x0..0x4]
+    |
+    = help: this indicates a potential bug in the program: it performed an invalid operation, but the Stacked Borrows rules it violated are still experimental
+    = help: see https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md for further information
+help: &lt;2452&gt; was created by a SharedReadWrite retag at offsets [0x0..0x4]
+    |
+    | let ptr: *mut _ = &amp;mut val;
+    |                   ^^^^^^^^
+help: &lt;2452&gt; was later invalidated at offsets [0x0..0x4] by a Unique retag
+    |
+    | let mref = &amp;mut val;
+    |            ^^^^^^^^
+</code></pre><p>Let&rsquo;s try to parse this, using the source lines and locations that Miri cites in its diagnostic. Creating the mutable pointer <code>ptr</code> is referred to as &ldquo;SharedReadWrite retag&rdquo;, and forming the mutable (exclusive!) reference is the &ldquo;Unique retag&rdquo;. According to the diagnostic, <code>ptr</code> is invalidated by the creation of a mutable (unique) reference: trying to later dereference the pointer violates the uniqueness assumption of the mutable reference, leading to undefined behaviour. Them&rsquo;s the rules: constructing a mutable reference immediately invalidates any pointers to the same location, making dereferencing them undefined behaviour.</p>
+<p>Interestingly, the above code not only compiles fine, but also seems to run fine (without Miri, that is), printing 16 even when built in release mode with optimizations enabled (<code>opt-level = 3</code>). I&rsquo;d have expected that in <code>println()</code>, the compiler would not re-read <code>*mref</code> but rather use directly the last value that was written into it validly, which is 17. Performing this kind of optimization is the entire point of these aliasing rules, after all! (I have also tried hiding the values behind <code>#[inline(never)]</code> functions, but that does not appear to be make a difference.) Nonetheless, it <em>is</em> undefined behaviour, and so a future version of the compiler may begin optimizing this code more aggressively and changing this behaviour.</p>
+<h2 id="summarizing-the-problem">Summarizing the problem</h2>
+<p>Returning to our <code>Exchange</code> and <code>Orderbook</code>, we should now be able to parse the diagnostic:</p>
+<ol>
+<li>The first order insert takes a mutable reference to the orderbook and saves it in its <code>OrderHandle</code> as a mutable raw pointer (&ldquo;created by a SharedReadWrite retag&rdquo;).</li>
+<li>The second order insert takes a mutable reference to the orderbook again, and this invalidates the mutable raw pointer stored in the <code>OrderHandle</code> for the first order (&ldquo;invalidated by a Unique retag&rdquo;).</li>
+<li>Canceling the first order via its <code>OrderHandle</code> reads from the mutable raw pointer, which is now invalid, triggering undefined behaviour (&ldquo;trying to retag for Unique permission, but that tag does not exist in the current borrow stack for this location&rdquo;).</li>
+</ol>
+<p>In my opinion, this particular violation of Rust&rsquo;s aliasing rules is very unlikely to ever cause runtime issues, but nonetheless code triggering undefined behaviour should not be relied on.</p>
+<p>It&rsquo;s important to point out scenarios that <em>do not</em> cause undefined behaviour with our code. Consider the simple insert-cancel case. Without another operation in between, the pointer in <code>OrderHandle</code> does not get invalidated, so dereferencing it during cancellation is completely valid: no UB. This can, of course, be repeated, so insert 1 - cancel 1 - insert 2 - cancel 2 is still completely fine. Similarly, insert 1 - insert 2 - cancel 2 is also fine, since there is no operation between insert 2 and cancel 2 that could invalidate the pointer in <code>OrderHandle-2</code>. We would only run into trouble if we tried to cancel <code>OrderHandle-1</code>.</p>
+<p>Note how even with the help of Miri, we can only detect the presence of UB if we have some particular code (e.g. test) that triggers it. If our only test case is one of the working ones, then we&rsquo;d never have been able to figure out the problem! UB is nasty business, both in Rust and in C++.</p>
+<h2 id="the-solution-do-not-mix-references-and-pointers">The solution: do not mix references and pointers</h2>
+<p>Our problem stems from the aliasing rules of Rust, namely that mutable references are unique. So what if just avoided creating any mutable references to orderbooks, and worked with them entirely through pointers? This should work. The full implementation is available <a href="https://gist.github.com/shdnx/f30d0b7f550218a25e447dc34dae5d7d">here</a>.</p>
+<h3 id="storing-the-order-books">Storing the order books</h3>
+<p>Recall that our orderbooks are stored in <code>HashMap&lt;Symbol, Box&lt;Orderbook&gt;&gt;</code>. Because it&rsquo;s too easy to accidentally form a mutable reference to <code>Orderbook</code> via the <code>Box</code> (indeed all <code>Box</code> APIs just return references to the boxed value), we will instead opt to store orderbooks directly as a raw pointer instead. For convenience we can still have <code>Box</code> handle the memory allocation using <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html#method.into_raw"><code>Box::into_raw()</code></a>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Creating an orderbook in `Exchange::insert()`:
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> orderbook: <span style="color:#f92672">*</span><span style="color:#66d9ef">mut</span> Orderbook <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>self
+    .order_books
+    .entry(symbol)
+    .or_insert_with(<span style="color:#f92672">||</span> Box::into_raw(Box::new(Orderbook::new())));
+</code></pre></div><p><code>Box::into_raw()</code> gives up ownership of the allocated value and returns it as a raw pointer. Notice how this is not a member function but rather an associated function on <code>Box&lt;T&gt;</code>: this is because of a peculiarity of Rust in that it auto-dereferences references and pointers, including smart pointers, without any explicit syntax. This feature of Rust is called &ldquo;Deref coercion&rdquo; and is tied to the <a href="https://doc.rust-lang.org/std/ops/trait.Deref.html"><code>Deref</code> trait</a> (as well as <code>DerefMut</code>, its mutable counterpart). For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span>;
+<span style="color:#66d9ef">impl</span> Foo {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">hello</span>(<span style="color:#f92672">&amp;</span>self) {}
+}
+
+<span style="color:#66d9ef">let</span> foo <span style="color:#f92672">=</span> Foo;
+foo.hello();
+
+<span style="color:#66d9ef">let</span> foobox <span style="color:#f92672">=</span> Box::new(Foo);
+foobox.hello(); <span style="color:#75715e">// equivalent to: (&amp;*foobox).hello()
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">let</span> fooboxref: <span style="color:#66d9ef">&amp;</span>Box<span style="color:#f92672">&lt;</span>Foo<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foobox;
+fooboxref.hello(); <span style="color:#75715e">// equivalent to: (&amp;**fooboxref).hello()
+</span></code></pre></div><p>Contrast this to C++ where the arrow operator (<code>-&gt;</code>) is used to function calls on pointers and smart pointers, as opposed to the dot operator (<code>.</code>) that is used for values and references.</p>
+<p>Because <code>Box</code> implements <code>Deref</code> and <code>DerefMut</code>, you can call member functions (methods) on <code>Box&lt;T&gt;</code> as-if it was just a <code>T</code> (without having to explicitly dereference), and <code>Box</code> has to make sure that there&rsquo;s never a case where it would be ambiguous whether a function name refers to one on <code>Box</code> or on <code>T</code> itself. The only way to avoid any possibility of this is by <code>Box</code> not defining any member functions at all.</p>
+<h3 id="implementing-drop">Implementing <code>Drop</code></h3>
+<p>We also need to clean up after ourselves if an <code>Exchange</code> object is destroyed, otherwise we would leak all the memory used for the <code>Orderbook</code>s. To do this, we will have <code>Exchange</code> implement the <a href="https://doc.rust-lang.org/std/ops/trait.Drop.html"><code>Drop</code> trait</a>, which is roughly equivalent to supplying a user-defined destructor for a class in C++. In the implementation we will use <a href="https://doc.rust-lang.org/std/boxed/struct.Box.html#method.from_raw"><code>Box::from_raw()</code></a> to turn our raw pointer back into a <code>Box</code>, and then we drop it explicitly to deallocate the orderbook:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span> Drop <span style="color:#66d9ef">for</span> Exchange {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">drop</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) {
+        <span style="color:#66d9ef">for</span> (_, orderbook) <span style="color:#66d9ef">in</span> self.order_books.iter() {
+            drop(<span style="color:#66d9ef">unsafe</span> { Box::from_raw(<span style="color:#f92672">*</span>orderbook) });
+        }
+    }
+}
+</code></pre></div><h2 id="working-with-only-pointers">Working with only pointers</h2>
+<p>Recall that we have to avoid creating references (especially mutable ones) to the orderbooks, and work with them entirely through pointers. This poses a problem with <code>Orderbook::insert()</code>, which takes the dreaded <code>&amp;mut self</code>. Rust does not unfortunately allow us to take <code>self</code> by pointer, because Rust is kind of a jerk when it comes to unsafe, so we have to turn our <code>insert()</code> member function into an associated function; this mostly just means that we have to call it using the more verbose <code>Orderbook::insert(orderbook_ptr, ...)</code> syntax rather than the more convenient <code>orderbook.insert(...)</code>.</p>
+<p>Rust also encourages us to mark the whole function as <code>unsafe</code> because it works with a pointer; though it wouldn&rsquo;t be an error to keep using <code>unsafe</code> blocks only for the parts where we are actually dereferencing the pointer, it&rsquo;s not good form.</p>
+<p>This pattern will spread throughout our codebase. Recall that we were using the <code>OrderbookSide</code> trait to get the correct collection of orders:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> OrderbookSide: Copy <span style="color:#f92672">+</span> Eq <span style="color:#f92672">+</span> Sized <span style="color:#f92672">+</span> <span style="color:#f92672">&#39;</span>static {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Opposite</span>: <span style="color:#a6e22e">OrderbookSide</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">is_price_better_than</span>(left: <span style="color:#66d9ef">f64</span>, right: <span style="color:#66d9ef">f64</span>) -&gt; <span style="color:#66d9ef">bool</span>;
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span>;
+}
+
+<span style="color:#75715e">#[derive(Debug, PartialEq, Eq, Clone, Copy)]</span>
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bid</span>;
+
+<span style="color:#66d9ef">impl</span> OrderbookSide <span style="color:#66d9ef">for</span> Bid {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Opposite</span> <span style="color:#f92672">=</span> Ask;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">is_price_better_than</span>(left: <span style="color:#66d9ef">f64</span>, right: <span style="color:#66d9ef">f64</span>) -&gt; <span style="color:#66d9ef">bool</span> {
+        left <span style="color:#f92672">&gt;</span> right
+    }
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Orderbook) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span> {
+        <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> orderbook.bids
+    }
+}
+
+<span style="color:#75715e">// similarly for Ask
+</span></code></pre></div><p><code>OrderbookSide::get_orders()</code> also has to change to take a pointer and be <code>unsafe</code>. Our first instinct might be to leave the return type a <code>&amp;mut BTreeMap&lt;...&gt;</code>, but that yields an exciting compiler diagnostic:</p>
+<pre tabindex="0"><code>error[E0106]: missing lifetime specifier
+  --&gt; ../blog/blogpost-ptr.rs:47:56
+   |
+47 |     unsafe fn get_orders(orderbook: *mut Orderbook) -&gt; &amp;mut BTreeMap&lt;OrderKey&lt;Self&gt;, Order&gt; {
+   |                                                        ^ expected named lifetime parameter
+   |
+   = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+help: consider using the `'static` lifetime, but this is uncommon unless you're returning a borrowed value from a `const` or a `static`
+   |
+47 |     unsafe fn get_orders(orderbook: *mut Orderbook) -&gt; &amp;'static mut BTreeMap&lt;OrderKey&lt;Self&gt;, Order&gt; {
+   |                                                         +++++++
+help: instead, you are more likely to want to change the argument to be borrowed...
+   |
+47 |     unsafe fn get_orders(orderbook: &amp;*mut Orderbook) -&gt; &amp;mut BTreeMap&lt;OrderKey&lt;Self&gt;, Order&gt; {
+   |                                     +
+help: ...or alternatively, you might want to return an owned value
+   |
+47 -     unsafe fn get_orders(orderbook: *mut Orderbook) -&gt; &amp;mut BTreeMap&lt;OrderKey&lt;Self&gt;, Order&gt; {
+47 +     unsafe fn get_orders(orderbook: *mut Orderbook) -&gt; BTreeMap&lt;OrderKey&lt;Self&gt;, Order&gt; {
+   |
+</code></pre><p>References are meant to be safe and are not allowed to be dangling, a rule enforced by the borrow checker via the concept of lifetimes. The compiler explains itself pretty well here: it has no natural lifetime to tie the reference to (by the rules of <a href="https://doc.rust-lang.org/reference/lifetime-elision.html">lifetime elision</a>) given that pointers have no lifetimes. None of the listed alternatives work for us (suggesting that we pass the pointer by reference in particularly is weird), so we are left with no choice but to return the <code>BTreeMap</code> itself as a pointer:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#f92672">*</span><span style="color:#66d9ef">mut</span> Orderbook) -&gt; <span style="color:#f92672">*</span><span style="color:#66d9ef">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span> {
+    <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> (<span style="color:#f92672">*</span>orderbook).bids
+}
+</code></pre></div><p>It&rsquo;s worth noting that this does form a <code>&amp;mut</code> but to the <code>bids</code> field itself, which doesn&rsquo;t get Miri mad at us. There are cases though when it&rsquo;d not be legal to go through an intermediate reference like that, and for that exists the <a href="https://doc.rust-lang.org/std/ptr/macro.addr_of_mut.html"><code>addr_of_mut!()</code></a> macro. Using it would look like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_orders</span>(orderbook: <span style="color:#f92672">*</span><span style="color:#66d9ef">mut</span> Orderbook) -&gt; <span style="color:#f92672">*</span><span style="color:#66d9ef">mut</span> BTreeMap<span style="color:#f92672">&lt;</span>OrderKey<span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>, Order<span style="color:#f92672">&gt;</span> {
+    addr_of_mut<span style="color:#f92672">!</span>((<span style="color:#f92672">*</span>orderbook).bids)
+}
+</code></pre></div><p>Important to remember that in the lambda of <code>OrderHandle</code> we must save a pointer to the orderbook, and <strong>not</strong> to the side&rsquo;s <code>BTreeMap</code>. This is because we cannot avoid forming mutable pointers to the <code>BTreeMap</code> as we are using it, which would get us back to where we started: to invalidated pointers and undefined behaviour.</p>
+<h2 id="unsafe-taint">Unsafe taint</h2>
+<p>With these changes, we should notice something important: correct use of <code>Exchange</code> now requires that the user code never forms a (mutable) reference to an <code>Orderbook</code>. Whether <code>Exchange</code> is part of a library or a larger application, we have to be very careful to never allow other code to accidentally trigger undefined behaviour for us. This is what people mean when they say that <code>unsafe</code> taints potentially an entire crate: it restricts what is fine to do even in safe Rust.</p>
+<p>We have three main options to deal with this situation:</p>
+<ol>
+<li>Document it but let it be otherwise,</li>
+<li>Mark any public functions on <code>Exchange</code> that can return an <code>Orderbook</code> as <code>unsafe</code>,</li>
+<li>Do not publicly expose <code>Orderbook</code> at all.</li>
+</ol>
+<p>The third is clearly the safest option, but it does mean that <code>Exchange</code> cannot have as rich an API as we might want. This may or not may not be viable in a real situation. If possible though, then this is likely the best option. This is a really important use of visibility controls in Rust: to encapsulate unsafe code.</p>
+<p>Note that making <code>Orderbook</code> non-public in turn requires that the <code>OrderbookSide</code> trait also be made private, because it has a method (<code>get_orders()</code>) that takes an <code>Orderbook</code> parameter. This in turn means that <code>OrderKey&lt;Side&gt;</code> cannot be public either.</p>
+<h2 id="revisiting-boxorderbook">Revisiting <code>Box&lt;Orderbook&gt;</code></h2>
+<p>Even though it&rsquo;s not a good idea, we <em>could</em> keep our orderbooks in a <code>Box</code> if we really wanted. This causes complications as we will see, and the only real advantage is that we can get rid of the manual <code>Drop</code> implementation for <code>Exchange</code>.</p>
+<p>If we really wanted to do this though, the key to avoiding mutable references to the underlying <code>Orderbook</code> is to only have a reference to the <code>Box</code> itself and then use the aforementioned <code>addr_of_mut!()</code> to turn it into a <code>Orderbook</code> pointer:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Creating an orderbook in `Exchange::insert()`:
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> orderbook: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Box<span style="color:#f92672">&lt;</span>Orderbook<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> self
+    .order_books
+    .entry(symbol)
+    .or_insert_with(<span style="color:#f92672">||</span> Box::new(Orderbook::new()));
+<span style="color:#66d9ef">let</span> orderbook_ptr <span style="color:#f92672">=</span> addr_of_mut<span style="color:#f92672">!</span>(<span style="color:#f92672">**</span>orderbook);
+</code></pre></div><p>However, <code>Box&lt;T&gt;</code> is implemented on top of <a href="https://docs.rs/unique/latest/unique/struct.Unique.html"><code>Unique&lt;T&gt;</code></a> whose semantics assume that other than the <code>Box</code> itself or any references formed from it, nobody is referencing the encapsulated value. That forbids our pointer trickery. <a href="https://github.com/rust-lang/unsafe-code-guidelines/issues/326#issuecomment-1095289846">We cannot rely on <code>Box</code></a> currently to provide address stability that is sound for use with pointers: moving a box invalidates all pointers to it due to <code>Unique</code>&rsquo;s aliasing rules, even though the pointed-to memory address remains stable.</p>
+<p>Nevertheless, at the moment storing <code>Box&lt;Orderbook&gt;</code> and then only ever mutating the <code>Orderbook</code> through a raw pointer seems to be okay by Miri, even with <code>MIRIFLAGS=&quot;-Zmiri-tree-borrows -Zmiri-unique-is-unique&quot;</code>. This can of course change at any moment. <code>Box</code> and <code>Unique</code> <a href="https://github.com/rust-lang/miri/issues/3673">are anyway magic</a>, so normal rules don&rsquo;t really apply.</p>
+<h3 id="further-reading">Further reading</h3>
+<p>Thank you for sticking with me on my Rust journey! Here are some additional references and links that you may find interesting:</p>
+<ul>
+<li><a href="https://gist.github.com/shdnx/e5d8f77a792d00e3d94274949be9285b">The code we started with</a></li>
+<li><a href="https://gist.github.com/shdnx/f30d0b7f550218a25e447dc34dae5d7d">The final code we ended up with</a></li>
+<li><a href="https://without.boats/blog/references-are-like-jumps/">References are like jumps</a>: why <code>Rust</code> does not allow mutable, aliased state</li>
+<li><a href="https://rust-unofficial.github.io/too-many-lists/index.html">Learning Rust With Entirely Too Many Linked Lists</a></li>
+<li><a href="https://github.com/rust-lang/rust/issues/64490">There are ongoing efforts</a> to make unsafe Rust less annoying to use</li>
+<li><a href="https://doc.rust-lang.org/std/cell/struct.UnsafeCell.html">UnsafeCell&lt;&gt;</a> could also be used to disable Rust&rsquo;s aliasing rules</li>
+</ul>
+
+		</div>
+	  </div>
+	
+	  <div class="h-entry">
+		
 			<h1><a href="https://blog.gaborkozar.me/2024/06/26/c-bits-polymorphism.html">C&#43;&#43; bits: polymorphism and delete; optimizing atomic writes</a></h1>
 		
 
